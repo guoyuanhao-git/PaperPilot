@@ -212,3 +212,90 @@ class PaperStorage(unittest.TestCase):
     def test_restore_url_follows_uploaded_version(self):
         self.assertEqual(paper_storage.restore_url(self.paper, [{'text':'arXiv:2501.12345v3'}]),
                          'https://arxiv.org/abs/2501.12345v3')
+
+    def test_delete_report_keeps_reading_data_and_original(self):
+        from paperpilot import knowledge
+        before = knowledge.fingerprint([self.paper])
+        self.paper['report']['sections'] = [{'paragraphs': ['Report evidence']}]
+        store.save('paper', self.paper)
+        before = knowledge.fingerprint([self.paper])
+        old = self.folder / 'crop-aaaaaaaaaaaaaaaa.png';old.write_bytes(b'old report image')
+        self.paper['report']['figures'][0]['image_file'] = old.name
+        store.save('paper', self.paper)
+        plan = paper_storage.report_preview(self.id)
+        result = paper_storage.delete_report(self.id, plan['revision'])['paper']
+        self.assertIsNone(result['report'])
+        self.assertNotEqual(before, knowledge.fingerprint([result]))
+        for key in ('notes', 'liked', 'read_status', 'messages', 'abstract', 'figures'):
+            self.assertEqual(result.get(key), self.paper.get(key))
+        self.assertTrue((self.folder / 'source.pdf').exists())
+        self.assertTrue((self.folder / 'exports/report-test.pdf').exists())
+        self.assertFalse(old.exists())
+
+    def test_report_delete_refuses_stale_confirmation_and_active_jobs(self):
+        plan = paper_storage.report_preview(self.id)
+        self.paper['report']['summary'] = 'New report'
+        store.save('paper', self.paper)
+        with self.assertRaisesRegex(ValueError, '已变化'):
+            paper_storage.delete_report(self.id, plan['revision'])
+        self.assertEqual(store.get('paper', self.id)['report']['summary'], 'New report')
+        store.save('job', {'id':'active', 'status':'running', 'paper_id':self.id})
+        with self.assertRaisesRegex(ValueError, '任务正在运行'):
+            paper_storage.report_preview(self.id)
+
+    def test_delete_report_after_pdf_release_keeps_manual_crops(self):
+        paper_storage.release(self.id)
+        current = store.get('paper', self.id)
+        retained = current['source_storage']['retained_images']
+        plan = paper_storage.report_preview(self.id)
+        result = paper_storage.delete_report(self.id, plan['revision'])['paper']
+        self.assertTrue(result['pdf_released'])
+        self.assertTrue((self.folder/'pages.json').exists())
+        self.assertIsNone(result['report'])
+        for name in result['source_storage']['retained_images']:
+            self.assertTrue((self.folder/name).exists())
+        self.assertTrue(set(result['source_storage']['retained_images']) <= set(retained))
+
+    def test_batch_preview_and_partial_release_preserve_reports(self):
+        ids = [self.id, 'f'*20, self.id]
+        plan = paper_storage.batch_storage(ids)
+        self.assertEqual(len(plan['items']), 2)
+        self.assertGreater(plan['items'][0]['bytes'], 0)
+        self.assertIn('error', plan['items'][1])
+        self.assertTrue((self.folder/'source.pdf').exists())
+        result = paper_storage.batch_storage(ids, release_files=True)
+        self.assertTrue(result['items'][0]['paper']['pdf_released'])
+        self.assertEqual(result['items'][0]['paper']['report']['summary'], 'Saved report')
+        self.assertIn('error', result['items'][1])
+        for invalid in ([], ['../outside'], [self.id]*101, 'not a list'):
+            with self.assertRaises(ValueError):
+                paper_storage.batch_storage(invalid)
+
+    def test_batch_report_delete_preserves_pdf_and_skips_changed_report(self):
+        other = documents.ingest(self.raw + b'\n% second fixture\n', 'second.pdf')
+        other['report'] = {'summary':'Other report', 'figures':[]}
+        store.save('paper', other)
+        ids = [self.id, other['id'], 'f'*20]
+        plan = paper_storage.batch_storage(ids, reports=True)
+        self.assertTrue(store.get('paper', self.id)['report'])
+        revisions = {p['id']:p['revision'] for p in plan['items'] if not p.get('error')}
+        other['report']['summary'] = 'Updated after preview'
+        store.save('paper', other)
+        results = paper_storage.batch_storage(ids, reports=True, release_files=True, revisions=revisions)['items']
+        self.assertIsNone(results[0]['paper']['report'])
+        self.assertTrue((self.folder/'source.pdf').exists())
+        self.assertEqual(results[0]['paper']['notes'], self.paper['notes'])
+        self.assertIn('已变化', results[1]['error'])
+        self.assertEqual(store.get('paper', other['id'])['report']['summary'], 'Updated after preview')
+        self.assertIn('error', results[2])
+
+    def test_batch_report_delete_requires_preview_and_is_account_scoped(self):
+        with self.assertRaisesRegex(ValueError, '确认'):
+            paper_storage.batch_storage([self.id], reports=True, release_files=True)
+        result = paper_storage.batch_storage([self.id], reports=True, release_files=True, revisions={})
+        self.assertIn('error', result['items'][0])
+        with tempfile.TemporaryDirectory() as other, store.scope({'directory':Path(other)}):
+            store.init()
+            result = paper_storage.batch_storage([self.id], reports=True)
+            self.assertIn('error', result['items'][0])
+        self.assertTrue(store.get('paper', self.id)['report'])

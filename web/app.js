@@ -203,7 +203,7 @@ function library(){
  return head('YOUR RESEARCH LIBRARY','为好想法留一个位置','上传论文，读懂动机与方法，再判断它与你的研究有什么联系。',`<div class="reading-stats" aria-label="阅读统计"><span>今日已读<strong>${stats.today}<small> 篇</small></strong></span><span title="每周日开始计算">本周已读<strong>${stats.week}<small> 篇</small></strong></span></div>`)+`
  <div class="panel import-panel"><div><label class="dropzone"><input id="upload" type="file" accept="application/pdf"><strong>＋ 上传论文 PDF</strong><small>保留原文 · 提取文字与图表 · 最大 40 MB</small></label></div><div class="link-import"><label for="paper-url">arXiv 链接(ID)</label><div class="fieldrow"><input id="paper-url" placeholder="例如 2603.16666 或完整 arXiv 链接"><button id="import-link" class="secondary" data-task>导入</button></div></div></div>
  <section class="panel favorite-import"><div><h3>从待读清单导入</h3></div><button id="pick-favorite" class="secondary" data-task>选择待读论文 · ${(state.favorites||[]).length} 篇</button></section>
- <div class="library-tabs" role="tablist" aria-label="论文分类">${[['reading','在读论文'],['read','已读论文'],['liked','我的喜欢'],['starred','我的收藏']].map(([key,label])=>`<button id="library-tab-${key}" role="tab" aria-selected="${libraryTab===key}" aria-controls="library-list" class="${libraryTab===key?'active':''}" data-library-tab="${key}">${key==='starred'?'<span class="tab-star" aria-hidden="true">★</span> ':key==='liked'?'<span class="tab-heart" aria-hidden="true">♥</span> ':''}${label}<span class="count">${counts[key]} 篇</span></button>`).join('')}</div>
+ <div class="library-toolbar"><div class="library-tabs" role="tablist" aria-label="论文分类">${[['reading','在读论文'],['read','已读论文'],['liked','我的喜欢'],['starred','我的收藏']].map(([key,label])=>`<button id="library-tab-${key}" role="tab" aria-selected="${libraryTab===key}" aria-controls="library-list" class="${libraryTab===key?'active':''}" data-library-tab="${key}">${key==='starred'?'<span class="tab-star" aria-hidden="true">★</span> ':key==='liked'?'<span class="tab-heart" aria-hidden="true">♥</span> ':''}${label}<span class="count">${counts[key]} 篇</span></button>`).join('')}</div><button id="batch-storage" class="textbtn small" type="button">批量管理</button></div>
  <div id="library-list" role="tabpanel" aria-labelledby="library-tab-${libraryTab}">${papers.length?`<div class="paper-grid">${papers.map(p=>libraryTab!=='reading'?compactPaper(p):`<article tabindex="0" class="paper-card" data-paper="${p.id}"><div class="row" style="justify-content:space-between"><span class="tag ${p.is_reference?'reference':''}">${p.is_reference?'风格参考读本':p.report?'已有中文解读':'等待阅读'}</span><div class="row">${preferenceButtons(p)}<button class="textbtn danger small" data-delete="${p.id}" aria-label="移除 ${esc(p.title)}">移除</button></div></div><h3>${esc(LibraryView.title(p))}</h3><p class="muted small">${p.page_count} 页 · ${p.figures.filter(f=>!f.duplicate_of).length} 个图表候选${p.notes?' · 有个人思考':''}${p.feedback?' · 已有偏好反馈':''}</p><div class="card-foot"><span class="reading-status ${LibraryView.done(p)?'is-complete':''}">${esc(p.read_status)}</span>${newPaperPage(p)}</div></article>`).join('')}</div>`:
  `<div class="empty"><div class="empty-icon">${libraryTab==='starred'?'☆':libraryTab==='liked'?'♡':'∿'}</div><h3>${({reading:'这里还没有在读论文',read:'读完一篇，留下一份积累',liked:'留住让你喜欢的论文',starred:'收藏值得反复回看的论文'})[libraryTab]}</h3><p>${({reading:'上传 PDF、输入 arXiv ID，或从待读清单导入。',read:'在解读末尾点击“阅读完毕”，论文就会出现在这里。',liked:'点击爱心，保存欣赏的思想、风格或方法。喜欢与收藏可随时切换。',starred:'点击星星，保留长期核心参考。再次点击可取消标记。'})[libraryTab]}</p></div>`}</div>${historyView()}`
 }
@@ -235,12 +235,6 @@ function paperTypeControl(p){
  const chosen=paperType(p);
  return `<label class="paper-type-control">论文类型<select id="paper-type" class="wideinput" ${busy?'disabled':''}>${[['research','研究论文'],['survey','综述论文']].map(([value,label])=>`<option value="${value}" ${chosen===value?'selected':''}>${label}</option>`).join('')}</select></label>`;
 }
-function presentationPanel(p){
- const latest=(p.exports||[]).filter(e=>e.format==='pptx').at(-1);
- const customStyle=(state.ppt_samples||[]).some(s=>s.enabled);
- return `<section class="panel teaching-panel"><h3>讲解 PPT</h3><p class="hint">${paperType(p)==='survey'?'先建立领域地图，再展开技术路线与比较。':'直接依据原论文备课，讲清概念、方法与证据。'}有阅读报告时作为辅助，无需先生成精读。</p><div class="style-sample-entry"><span>讲解风格 · ${customStyle?'我的范例':'内置'}</span><button id="manage-ppt-samples" class="textbtn small" type="button">${(state.ppt_samples||[]).length?`管理 · ${state.ppt_samples.filter(s=>s.enabled).length} 份启用`:'添加范例'}</button></div><button id="generate-presentation" class="secondary wideinput" data-task>${latest?'重新生成讲解 PPT':'生成讲解 PPT'}</button><p class="hint">调用当前模型的精读配置，独立编写幻灯片与讲稿。</p>${latest?`<a class="small export-download" href="${scopedFile(latest.url)}">下载讲解 PPT ↗</a>`:''}</section>`;
-}
-
 function latestReadingTask(p){return state.analysis_jobs?.[p.id]||(state.jobs||[]).find(j=>j.kind==='analysis'&&j.paper_id===p.id)}
 function readingTaskStatus(p){
  const job=latestReadingTask(p);
@@ -260,10 +254,9 @@ function paper(){
  const used=new Set(r?.sections.flatMap(s=>s.figures)||[]),remainingFigures=figures.filter(f=>!used.has(f.id));
  return readerBack()+head(p.is_reference?'STYLE REFERENCE':'PAPER READING',esc(LibraryView.title(p)),`${p.page_count} 页 · ${p.is_reference?'用户提供的教材式学习稿':'已提取论文文字'} · ${p.pdf_released?'<span class="small muted">原文已释放</span> · <button class="textbtn small" data-storage="'+p.id+'">恢复原文</button>':`<a target="_blank" rel="noopener" href="${scopedFile(`/files/${p.id}/source.pdf`)}">打开原文 PDF ↗</a>`}`, `<div class="row paper-actions">${separateReader?'':newPaperPage(p)}${preferenceButtons(p)}<button id="open-paper-chat" class="primary" aria-expanded="${paperChatOpen}">交流</button>${paperMore(p)}</div>`)+`
  <div class="workspace"><div class="reading-column"${paperChatOpen?' data-scroll-key="paper-reading"':''}><article class="reading">${r?`<div class="row"><span class="tag">${({overview:'中文速览',detailed:'中文精读',deep:'数学精读'})[r.mode]||'中文速览'}${r.paper_type==='survey'?' · 综述':''}</span><span class="small muted">${names[r.provider]||'历史接入'} · ${esc(r.model||'')} · ${date(r.generated_at)}</span></div><p class="lead" style="margin-top:22px">${ReportView.inline(ReportView.references(r.summary))}</p><div class="meta">${esc(r.scope)}<br>${r.vision?`附图 ${r.image_count} 张，图文理解取决于所用模型`:'未启用图片理解，图表解释依据文字和图注'}${p.is_reference?'<br>风格参考学习稿，非原始论文':''}</div>${r.abstract?.original?`<details class="source-caption"><summary>查看原始摘要</summary><p>${esc(r.abstract.original)}</p></details>`:''}${r.figure_coverage?`<details class="source-caption"><summary>图表阅读清单 · 分析 ${r.figure_coverage.length} 项 / 收录 ${r.figures.length} 项</summary>${r.figure_coverage.map(f=>`<p>${esc(ReportView.references(f.label))} · ${f.included?'已收录':'未收录'}：${esc(f.reason)}</p>`).join('')}</details>`:''}${sections.filter(s=>s.key!=='relevance').map(s=>reportSectionView(s,p,figure)).join('')}${remainingFigures.length?`<section class="section"><h2>其他所选原文图表</h2><p class="muted small">模型未将这些图分配到章节，供对照原文。</p>${remainingFigures.map(f=>figure(f.id)).join('')}</section>`:''}${r.sections.some(s=>s.key==='relevance')?sections.filter(s=>s.key==='relevance').map(s=>reportSectionView(s,p,figure,true)).join(''):`<section class="section"><h2>助手判断</h2>${finishReading(p)}</section>`}`:
- ` ${p.abstract_record?.original||p.abstract?`<section class="section abstract-section"><p>${esc(p.abstract_record?.translation||p.abstract_record?.original||p.abstract)}</p>${p.abstract_record?.translation?`<details class="source-caption"><summary>查看原始摘要</summary><p>${esc(p.abstract_record.original)}</p></details>`:''}</section>`:''}<div class="empty-icon">∿</div><h2>先看懂这篇论文在解决什么</h2><p class="muted">右侧生成中文解读或讲解 PPT，也可以围绕具体问题直接提问。</p><div class="section"><h3>按自己的思路读论文</h3><p class="muted">在右侧编辑叙述线，用词或句子说明希望如何展开，再生成解读。</p></div>`}</article>
+ ` ${p.abstract_record?.original||p.abstract?`<section class="section abstract-section"><p>${esc(p.abstract_record?.translation||p.abstract_record?.original||p.abstract)}</p>${p.abstract_record?.translation?`<details class="source-caption"><summary>查看原始摘要</summary><p>${esc(p.abstract_record.original)}</p></details>`:''}</section>`:''}<div class="empty-icon">∿</div><h2>先看懂这篇论文在解决什么</h2><p class="muted">右侧生成中文解读，也可以围绕具体问题直接提问。</p><div class="section"><h3>按自己的思路读论文</h3><p class="muted">在右侧编辑叙述线，用词或句子说明希望如何展开，再生成解读。</p></div>`}</article>
  <section class="panel personal-notes" data-view-anchor="personal-notes"><div class="row" style="justify-content:space-between"><h2>我的思考 / 评价</h2><span class="small muted" id="notes-status">${notesDrafts.has(p.id)?'尚未保存':p.notes_updated_at?'已保存 · '+date(p.notes_updated_at):'仅保存你的文字'}</span></div><p class="hint">可以记下亮点、疑问、复现思路，或为什么觉得这篇论文不值得继续读。不会混入模型解读或自动导出。</p><textarea id="personal-notes" rows="7" maxlength="20000" placeholder="我认为这篇论文最有价值 / 最薄弱的地方是…">${esc(notesDrafts.get(p.id)??p.notes??'')}</textarea><button id="save-notes" class="primary">保存我的思考</button></section></div>
  <aside class="toolcol">${identityFields(p)}<section class="panel">${paperTypeControl(p)}<h3>阅读方式</h3><select id="read-mode" class="wideinput"><option value="overview" ${(readingModes.get(p.id)||r?.mode||'overview')==='overview'?'selected':''}>中文速览 · 默认</option><option value="detailed" ${(readingModes.get(p.id)||r?.mode)==='detailed'?'selected':''}>中文精读 · 细致展开</option><option value="deep" ${(readingModes.get(p.id)||r?.mode)==='deep'?'selected':''}>数学精读 · 教材式</option></select><div class="style-sample-entry"><span>数学精读 · 参考例文</span><button id="manage-style-samples" class="textbtn small" type="button">${(state.style_samples||[]).length?`管理 · ${state.style_samples.filter(s=>s.enabled).length} 份启用`:'提供例文'}</button></div>${outlineEditor(p)}<label>图表阅读范围<select id="figure-scope"><option value="all" ${(readingScopes.get(p.id)||'all')==='all'?'selected':''}>全部图表 · 默认</option><option value="selected" ${readingScopes.get(p.id)==='selected'?'selected':''}>仅手动勾选的图表</option></select></label><p class="hint">研究论文讲清研究故事，综述论文梳理领域地图。速览与精读按叙述线展开，数学精读结合参考例文讲解。摘要、论文相关与助手判断独立保留。</p><div id="reading-task-status">${readingTaskStatus(p)}</div><button id="analyze" class="primary wideinput" ${analysisActive(p.id)?'disabled':''}>${analysisActive(p.id)?'生成中…':p.pdf_released?'恢复原文后生成解读':failed?'重试生成解读':r?'重新生成解读':'生成解读'}</button><button id="stop-analysis" class="textbtn wideinput" type="button" ${analysisActive(p.id)?'':'hidden'}>停止生成</button>${r?`<div class="report-tools"><button data-export="pdf" class="secondary" data-task>导出 PDF</button></div><p class="hint">PDF 保存当前解读，不额外调用模型。</p>${(p.exports||[]).filter(e=>e.format==='pdf').slice(-1).map(e=>`<a class="small export-download" href="${scopedFile(e.url)}">下载 PDF ↗</a>`).join('')}`:''}</section>
- ${presentationPanel(p)}
  ${p.pdf_released?`<section class="panel"><h3>原文图表</h3><p class="hint">报告中的图表已保留。恢复原文后可查看全部图表、调整裁剪。</p><button class="secondary" data-storage="${p.id}">恢复原文</button></section>`:` <section class="panel"><h3>原文图表 <span class="small muted">${readingScopes.get(p.id)==='selected'?`手动选择 ${p.figures.filter(f=>f.selected&&!f.duplicate_of).length} 张`:`全部 ${p.figures.filter(f=>!f.duplicate_of).length} 张待评估`}</span></h3><p class="hint">当前阅读范围为“${readingScopes.get(p.id)==='selected'?'仅手动勾选':'全部图表'}”。默认全部评估，由模型决定哪些值得放入速览；切换为“仅手动勾选”后可调整勾选。自动裁剪可手动修正。</p><div class="figlist" data-scroll-key="paper-figures">${p.figures.filter(f=>!f.duplicate_of).map(f=>`<div class="figitem" data-view-anchor="figure-${esc(f.id)}"><img loading="lazy" src="${scopedFile(ReaderState.figureUrl(p.id,f))}" alt="${esc(ReportView.caption(f))}"><label><input type="checkbox" data-figure="${f.id}" ${readingScopes.get(p.id)==='selected'?(f.selected?'checked':''):'checked disabled'}><p>第 ${f.page} 页 · ${esc(ReportView.caption(f))}</p></label><details class="source-caption"><summary>查看原文图注</summary>${esc(f.caption)}</details><button data-crop="${f.id}" class="textbtn small">调整裁剪 / 中文图注</button></div>`).join('')||'<p class="small muted">未检测到图注，可以手动添加。</p>'}</div><button id="add-figure" class="textbtn small">＋ 从原文页面添加图表</button>${readingScopes.get(p.id)==='selected'?'<button id="translate-captions" class="textbtn small" data-task>改写手动勾选图注</button>':''}<p class="hint">新解读会同时生成中文图注；切换为手动选择后，可单独改写勾选图注。手动裁剪和图注修改立即同步，下载文件需重新导出。</p></section>`}
 
  <section class="panel"><h3>阅读状态与推荐偏好</h3><div class="row"><span class="reading-status ${LibraryView.done(p)?'is-complete':''}">${esc(p.read_status)}</span>${LibraryView.done(p)?'<button id="start-reading" class="textbtn small">开始阅读</button>':''}</div><textarea id="feedback" class="wideinput" rows="3" placeholder="供后续推荐参考：喜欢或不喜欢什么，为什么？">${esc(p.feedback)}</textarea><button id="save-feedback" class="textbtn">保存反馈</button></section></aside>${paperChatOpen?'<div class="reader-divider" role="separator" tabindex="0" aria-orientation="vertical" aria-label="调整报告与交流宽度" title="拖动调整宽度 · 双击恢复默认"></div>'+paperChat(p):''}</div>`;
@@ -277,7 +270,7 @@ function webSupplementSettings(c){
  return `<section class="advanced-section"><h3>联网补充</h3><label class="advanced-toggle-row"><span><span class="setting-label">DeepSeek Search / Fetch</span><small>仅补充标题搜索与失败的文章读取</small></span><input id="web-supplement-enabled" class="setting-switch" type="checkbox" role="switch" ${c.web_supplement_enabled?'checked':''}></label><p class="hint">使用当前用户的 DeepSeek Key；切换模型仍按此开关生效。成功请求约 ¥0.005 / 次，每日最多 60 次；缓存不重复计费。</p><small class="muted">今日 ${u.successful||0} 次成功 · 接口估算 ¥${Number(u.estimated_cny||0).toFixed(3)}${u.unknown?' · '+u.unknown+' 次费用待确认':''}（不含模型 token）</small></section>`;
 }
 function reasoningSettings(c){
- const groups=[['overview','论文速览','medium','快速理解研究故事'],['study','论文精读','high','精读报告与讲解 PPT'],['knowledge','知识图谱','medium','领域／主线图谱']];
+ const groups=[['overview','论文速览','medium','快速理解研究故事'],['study','论文精读','high','中文精读与数学精读'],['knowledge','知识图谱','medium','领域／主线图谱']];
  const policy=reasoningDraft||c.reasoning_policy||{custom_enabled:false,overrides:{}},labels={low:'轻量',medium:'标准',high:'深入'},provider=draftProvider||c.provider;
  const params=provider==='codex'?['low','medium','high']:['关闭','low','high'];
  const mapping=Object.values(labels).map((label,i)=>`<span>${label}<code>${params[i]}</code></span>`).join('');
@@ -559,6 +552,8 @@ function bind(){
 
  bindKnowledge();
  const on=(s,fn)=>{const el=$(s);if(el)el.onclick=()=>guard(fn)};
+ on('#batch-storage',()=>openBatchStorage());
+ document.querySelectorAll('[data-delete-report]').forEach(b=>b.onclick=()=>guard(()=>openDeleteReport(b.dataset.deleteReport)));
  document.querySelectorAll('[data-storage]').forEach(b=>b.onclick=()=>guard(()=>openPaperStorage(b.dataset.storage,b.dataset.manualRestore==='1')));
  on('#show-skipped-hotspots',()=>{hotspotSkippedOpen=!hotspotSkippedOpen;render()});
  on('#close-skipped-hotspots',()=>{hotspotSkippedOpen=false;hotspotRestored.clear();render()});
@@ -592,7 +587,6 @@ function bind(){
  document.querySelectorAll('[data-paper]').forEach(el=>{el.onclick=e=>{if(e?.target.closest('a,button,input,select,textarea'))return;selected=state.papers.find(p=>p.id===el.dataset.paper);if(selected)setView('paper');else toast('论文已移除',true)};el.onkeydown=e=>{if(e.target!==el)return;if(e.key==='Enter'||e.key===' '){e.preventDefault();el.onclick()}}});
  const upload=$('#upload');if(upload)upload.onchange=()=>guard(async()=>{const f=upload.files[0];if(!f)return;if(f.size>40*1024*1024)throw Error('最大支持 40 MB');const origin=navigationContext();toast('正在提取文字和图表…');const paper=await request('/api/upload',f,true,{'X-Filename':encodeURIComponent(f.name)});await reload(false);if(stillAt(origin)){selected=state.papers.find(p=>p.id===paper.id)||paper;setView('paper')}else{render();toast('论文已导入论文库')}});
  on('#import-link',()=>startJob('/api/import',{url:$('#paper-url').value.trim()}));
- on('#manage-ppt-samples',()=>{renderPptSamples();$('#ppt-samples-dialog').showModal();pollPptStyle()});
  on('#manage-style-samples',()=>{renderStyleSamples();$('#style-samples-dialog').showModal();pollStyleCache()});
  if($('#figure-scope'))$('#figure-scope').onchange=()=>{const mode=$('#read-mode').value;readingScopes.set(selected.id,$('#figure-scope').value);render();$('#read-mode').value=mode};
  if($('#read-mode'))$('#read-mode').onchange=e=>readingModes.set(selected.id,e.target.value);
@@ -603,8 +597,7 @@ function bind(){
  on('#edit-outline',()=>{readingOutlines.set(outlineKey(selected),[...savedOutline(selected)]);editingOutlines.add(selected.id);render();$('[data-outline-step]')?.focus({preventScroll:true})});
  on('#cancel-outline',()=>{readingOutlines.set(outlineKey(selected),[...savedOutline(selected)]);editingOutlines.delete(selected.id);render()});
  on('#save-outline',saveReadingOutline);
- if($('#paper-type'))$('#paper-type').onchange=e=>guard(async()=>{const choice=e.target.value,id=selected.id;if(editingOutlines.has(id))await saveReadingOutline();const updated=await request('/api/paper-update',{id,paper_type:choice});const i=state.papers.findIndex(p=>p.id===id);if(i>=0)state.papers[i]=updated;if(selected?.id===id)selected=updated;render();toast('论文类型已保存，报告与 PPT 共用此设置')});
- on('#generate-presentation',async()=>{if(selected.pdf_released)return openPaperStorage(selected.id);if(busy)return;const id=selected.id,origin=navigationContext();if(editingOutlines.has(id))await saveReadingOutline();if(stillAt(origin))await startJob('/api/presentation',{id})});
+ if($('#paper-type'))$('#paper-type').onchange=e=>guard(async()=>{const choice=e.target.value,id=selected.id;if(editingOutlines.has(id))await saveReadingOutline();const updated=await request('/api/paper-update',{id,paper_type:choice});const i=state.papers.findIndex(p=>p.id===id);if(i>=0)state.papers[i]=updated;if(selected?.id===id)selected=updated;render();toast('论文类型已保存')});
  on('#analyze',async()=>{if(selected.pdf_released)return openPaperStorage(selected.id);if(analysisActive(selected.id))return;const id=selected.id,origin=navigationContext(),mode=$('#read-mode').value,scope=$('#figure-scope').value;if(editingOutlines.has(id))await saveReadingOutline();if(stillAt(origin))await startAnalysis({id,mode,figure_scope:scope})});
  on('#open-paper-chat',()=>togglePaperChat(!paperChatOpen));
  on('#close-paper-chat',()=>togglePaperChat(false));
@@ -793,7 +786,7 @@ guard(async()=>{
  }
  if(chatPending.size)render();
  watchAnalyses();
- const pending=state.jobs.find(j=>(!separateReader||j.paper_id===selected?.id)&&!['analysis','chat','style-cache','ppt-style','knowledge-auto'].includes(j.kind)&&['running','queued'].includes(j.status));
+ const pending=state.jobs.find(j=>(!separateReader||j.paper_id===selected?.id)&&!['analysis','chat','style-cache','knowledge-auto'].includes(j.kind)&&['running','queued'].includes(j.status));
  if(pending){
   if(pending.kind.startsWith('recommendation-'))await followModelJob(pending);
   else if(pending.kind==='title-search')await followTitleJob(pending);
@@ -864,39 +857,6 @@ async function pollStyleCache(){
  if($('#style-samples-dialog').open&&state.style_cache.state==='pending')styleCacheTimer=setTimeout(pollStyleCache,1800);
 }
 $('#retry-style-cache').onclick=()=>guard(async()=>{state.style_cache=await request('/api/style-cache',{});renderStyleCacheStatus();pollStyleCache()});
-
-let pptStyleTimer,pptSourceId;
-function renderPptSamples(){
- const mode=state.settings.ppt_style_mode||'cached';
- $('#ppt-mode-options').innerHTML=[['cached','提炼风格','复用叙述与版式规范'],['direct','现场阅读范例','每次参考原始文字与结构']].map(([value,title,description])=>`<button type="button" class="style-mode-option ${mode===value?'selected':''}" data-ppt-mode="${value}" aria-pressed="${mode===value}"><strong>${title}</strong><small>${description}</small></button>`).join('');
- const items=state.ppt_samples||[];
- $('#ppt-sample-list').innerHTML=items.length?items.map(item=>`<div class="style-sample-row"><label class="style-sample-label"><input type="checkbox" data-ppt-enable="${esc(item.id)}" ${item.enabled?'checked':''}><span><strong>${esc(item.name)}</strong><small>${item.slides} 页 · ${item.full_text?'全部可提取文字与结构':'全文分段参考'}</small></span></label><button type="button" class="textbtn danger small" data-ppt-delete="${esc(item.id)}">移除</button></div><div class="ppt-source-row"><span>${item.source_name?'对应原文：'+esc(item.source_name):'对应原文（选填）'}</span><button class="textbtn small" data-ppt-source="${esc(item.id)}">${item.source_name?'更换':'添加 PDF'}</button>${item.source_name?`<button class="textbtn small" data-ppt-source-delete="${esc(item.id)}">移除原文</button>`:''}</div>`).join(''):'<div class="style-sample-empty">已内置课堂讲解风格，可直接生成；添加范例后优先参考你的风格。</div>';
- $('#ppt-sample-upload').disabled=items.length>=3;$('#ppt-sample-error').hidden=true;renderPptStyleStatus();
- document.querySelectorAll('[data-ppt-mode]').forEach(b=>b.onclick=()=>updatePptSamples(()=>request('/api/ppt-mode',{mode:b.dataset.pptMode})));
- document.querySelectorAll('[data-ppt-enable]').forEach(b=>b.onchange=()=>updatePptSamples(()=>request('/api/ppt-samples',{id:b.dataset.pptEnable,action:'enable',enabled:b.checked})));
- document.querySelectorAll('[data-ppt-delete]').forEach(b=>b.onclick=()=>updatePptSamples(()=>request('/api/ppt-samples',{id:b.dataset.pptDelete,action:'delete'})));
- document.querySelectorAll('[data-ppt-source]').forEach(b=>b.onclick=()=>{pptSourceId=b.dataset.pptSource;$('#ppt-source-upload').click()});
- document.querySelectorAll('[data-ppt-source-delete]').forEach(b=>b.onclick=()=>updatePptSamples(()=>request('/api/ppt-samples',{id:b.dataset.pptSourceDelete,action:'source-delete'})));
-}
-async function updatePptSamples(action){
- $('#ppt-samples-dialog').querySelectorAll('input,button:not(#close-ppt-samples)').forEach(el=>el.disabled=true);
- try{const result=await action();state.ppt_samples=result.items;state.ppt_style=result.style_cache;if(result.mode)state.settings.ppt_style_mode=result.mode;renderPptSamples();render();pollPptStyle()}
- catch(e){renderPptSamples();$('#ppt-sample-error').hidden=false;$('#ppt-sample-error').textContent=e.message}
- finally{$('#ppt-source-upload').disabled=false}
-}
-function renderPptStyleStatus(){
- const direct=state.settings.ppt_style_mode==='direct',value=state.ppt_style?.state||'empty';
- $('#ppt-style-state').textContent=value==='empty'?'使用内置讲解风格':direct?'生成时直接参考范例文字与版式结构':({ready:'PPT 风格已保存 · 切换模型也可复用',pending:'正在提炼 PPT 风格…',stale:'尚未提炼 PPT 风格',failed:'整理未完成，可重试'}[value]);
- $('#retry-ppt-style').hidden=direct||!['failed','stale'].includes(value);$('#retry-ppt-style').disabled=false;
-}
-async function pollPptStyle(){
- clearTimeout(pptStyleTimer);if(state.settings.ppt_style_mode==='direct')return;
- try{state.ppt_style=await request('/api/ppt-style');renderPptStyleStatus();if($('#ppt-samples-dialog').open&&state.ppt_style.state==='pending')pptStyleTimer=setTimeout(pollPptStyle,1800)}catch(e){$('#ppt-style-state').textContent=e.message}
-}
-$('#close-ppt-samples').onclick=()=>$('#ppt-samples-dialog').close();$('#ppt-samples-dialog').addEventListener('close',()=>clearTimeout(pptStyleTimer));
-$('#retry-ppt-style').onclick=()=>updatePptSamples(()=>request('/api/ppt-style',{}));
-$('#ppt-sample-upload').onchange=()=>{const file=$('#ppt-sample-upload').files[0];if(file)updatePptSamples(()=>request('/api/ppt-samples/upload',file,true,{'X-Filename':encodeURIComponent(file.name)}));$('#ppt-sample-upload').value=''};
-$('#ppt-source-upload').onchange=()=>{const file=$('#ppt-source-upload').files[0];if(file)updatePptSamples(()=>request('/api/ppt-samples/source',file,true,{'X-Filename':encodeURIComponent(file.name),'X-Sample-Id':pptSourceId}));$('#ppt-source-upload').value=''};
 
 $('#model-setup-close').onclick=$('#model-setup-done').onclick=()=>$('#model-setup-dialog').close();
 $('#model-setup-copy').onclick=()=>guard(async()=>{await navigator.clipboard.writeText($('#model-setup-instruction').value);toast('已复制，可粘贴给 Codex 或 dsh')});

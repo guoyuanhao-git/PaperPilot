@@ -59,7 +59,6 @@ DEFAULTS = {
     'deepseek': {'base_url': 'https://api.deepseek.com', 'model': 'deepseek-flash', 'thinking': 'low',
                  'detail_model': 'deepseek-flash', 'detail_thinking': 'high'},
     'math_style_mode': 'cached',
-    'ppt_style_mode': 'cached',
     'memory': {'enabled': False}, 'knowledge_deep_thinking': False,
     'hotspot_news_enabled': True,
     'web_supplement_enabled': False,

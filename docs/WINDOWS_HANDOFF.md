@@ -1,5 +1,7 @@
 # Windows 适配交接：给 Windows 上的 Codex
 
+最新一轮任务请先按 [2026-10-29 合并后复核](WINDOWS_SYNC_2026-10-29.md) 执行。基础 Windows 兼容与真实模型测试已有记录，下文作为通用边界与初次安装参考，不要求重复实现。
+
 ## 任务与边界
 
 用户已授权在本机为 PaperPilot 做 Windows 原生兼容适配与验证。macOS 是产品主开发线；保留现有页面、功能、模型规则、隐私边界与业务测试。本机为借用的测试电脑，尽量自主完成，仅在系统安装授权、账号登录或必要产品决策时请求用户协助。不能承诺零交互：系统权限与登录必须由机主/用户完成。
@@ -14,7 +16,7 @@
 2. 先复现启动阻塞，再集中实现跨平台文件锁及进程管理。不要仅通过 WSL 宣称原生 Windows 完成。
 3. 提供 Windows 双击启动/停止入口及清楚的首次安装说明；重复启动复用原服务，路径包含中文、空格也可用。
 4. 核查 Codex 可执行文件探测（包括 .cmd 包装器）、参数转义、登录作用域、子进程与取消；DeepSeek 保留现有 API 调用与用户隔离。共用 `paperpilot.model_setup`，不复制一套业务逻辑。
-5. 验证网页、上传/裁剪、数学公式、图谱、PDF/PPT 导出，以及重启后数据保留。
+5. 验证网页、上传/裁剪、数学公式、图谱、PDF 导出，以及重启后数据保留。
 6. 增加必要跨平台回归测试，整理实际结果、截图及操作说明，提交草稿 PR，由 macOS 端复核后合并。
 
 ## 已知入口与风险（源码检查，不代替实机结果）
@@ -26,7 +28,7 @@
 | run.sh、tools/open-app.sh、.command、.app | macOS/Unix 入口，添加 Windows 入口并保留它们 |
 | paperpilot/model_setup.py、providers.py | CLI 查找、账户隔离、CODEX_HOME、参数包含空格、取消与超时 |
 | paperpilot/credentials.py | macOS 钥匙串保持原行为，Windows 现行磁盘存储不可回显；不要为适配改成共享全局密钥 |
-| tools/export.mjs、presentation-export.mjs | Playwright Chromium、中文字体、路径/file URL、临时文件释放 |
+| tools/export.mjs | Playwright Chromium、中文字体、路径/file URL、临时文件释放 |
 | paperpilot/store.py、documents.py | SQLite 并发、文件占用、恢复/删除 PDF、原子替换在 Windows 的行为 |
 | paperpilot/conference_registry.json、web/conferences/logic.mjs | 运行所需文件，不得在打包时遗漏 |
 
@@ -44,7 +46,7 @@ $env:PAPERPILOT_DATA = Join-Path $env:TEMP ("paperpilot-win-" + [guid]::NewGuid(
 node --test tests/reader-split.test.cjs tests/conference-rules.test.mjs
 ```
 
-修复启动问题后，用上述临时数据目录创建测试用户；不得从 GitHub/Mac 拷贝用户数据。测试 PDF 用 reportlab 合成，模型响应用模拟。`python -m paperpilot.server --port 8766` 可用于调试；最终必须验证新双击入口。运行 `python tests/verify_exports.py` 验证 PDF，并补测 PPTX 导出与浏览器显示。
+修复启动问题后，用上述临时数据目录创建测试用户；不得从 GitHub/Mac 拷贝用户数据。测试 PDF 用 reportlab 合成，模型响应用模拟。`python -m paperpilot.server --port 8766` 可用于调试；最终必须验证新双击入口。运行 `python tests/verify_exports.py` 验证 PDF，并验证浏览器显示。
 
 真实模型测试单独进行：本任务不自动授权消耗订阅或 API 额度。未获授权就记录“真实 Codex/DeepSeek 未测”；本地配置检查通过不得写成模型连接成功。模型设置里的协助接入提示词必须使用 Windows 实际项目目录、当前账户和端口。
 
@@ -55,7 +57,7 @@ node --test tests/reader-split.test.cjs tests/conference-rules.test.mjs
 - [ ] 未误杀其他进程；后台任务存在时停止保护有效；任务取消能回收子进程。
 - [ ] 首次创建账户、切换、数据隔离及重启持久化（仅测试账户）。
 - [ ] PDF 上传、摘要、页面渲染、图表裁剪/取消/保存原地更新。
-- [ ] 合成报告与问答的 Markdown/LaTeX 渲染，PDF 中文/公式/图片导出，PPTX 生成及可打开。
+- [ ] 合成报告与问答的 Markdown/LaTeX 渲染，PDF 中文/公式/图片导出。
 - [ ] 知识图谱二维/三维、会议列表、静态资产无 404；外部服务失败可用提示、不阻塞本地工作。
 - [ ] 模拟调用验证三后台任务并行、其余排队、取消；实际网络/模型测试另列。
 - [ ] Python/Node 测试通过，未通过项解释根因，不删除测试掩盖失败。

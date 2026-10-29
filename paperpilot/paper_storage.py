@@ -291,3 +291,70 @@ def download(ident):
             restore_bytes(ident, data, expected_storage=paper['source_storage'])
             return {'paper_id': ident}
         return service.paper_job('restore_pdf', ident, work)
+
+
+def report_preview(ident):
+    from .service import SAVE_LOCK
+    from .reading_checkpoint import digest
+    with SAVE_LOCK:
+        idle(ident)
+        paper = store.get('paper', ident)
+        if not paper.get('report'):
+            raise ValueError('这篇论文没有阅读报告')
+        return {'revision': digest(paper['report'])}
+
+
+def delete_report(ident, revision):
+    """Remove only the reviewed report; preserve reading history and original material."""
+    from .service import SAVE_LOCK
+    from .reading_checkpoint import digest
+    with SAVE_LOCK, documents.PDF_LOCK:
+        idle(ident)
+        paper = store.get('paper', ident)
+        report = paper.get('report')
+        if not report or digest(report) != revision:
+            raise ValueError('阅读报告已变化，请重新确认')
+        folder = documents.directory(ident)
+        old = set(paper.get('source_storage', {}).get('retained_images', []))
+        old.update(f.get('image_file') or documents.crop_path(ident, f, paper).name
+                   for f in report.get('figures', []))
+        # A manual crop may still be in the original-figure editor.
+        keep = {f.get('image_file') or documents.crop_path(ident, f, paper).name
+                for f in paper.get('figures', [])}
+        paper['report'] = None
+        if paper.get('source_storage'):
+            paper['source_storage']['retained_images'] = sorted(old & keep)
+        store.save('paper', paper)  # Graph fingerprints include report material.
+        pending = 0
+        for name in old - keep:
+            if re.fullmatch(r'crop-[a-f0-9]{16}\.png', name):
+                try:
+                    (folder / name).unlink(missing_ok=True)
+                except OSError:
+                    pending += 1
+        return {'paper': paper, 'cleanup_pending': pending}
+
+
+def batch_storage(ids, *, release_files=False, reports=False, revisions=None):
+    """Preview or apply one operation per paper, keeping independent outcomes."""
+    if not isinstance(ids, list) or not ids or len(ids) > 100 or any(not isinstance(i, str) or not re.fullmatch(r'[a-f0-9]{20}', i) for i in ids):
+        raise ValueError('每次请选择 1–100 篇论文')
+    if reports and release_files and not isinstance(revisions, dict):
+        raise ValueError('请先确认阅读报告版本')
+    results = []
+    for ident in dict.fromkeys(ids):
+        try:
+            if reports:
+                value = delete_report(ident, revisions.get(ident)) if release_files else report_preview(ident)
+            else:
+                value = release(ident) if release_files else preview(ident)
+            results.append({'id': ident, **value})
+        except (ValueError, FileNotFoundError, OSError) as error:
+            item = {'id': ident, 'error': str(error)}
+            if release_files:
+                try:
+                    item['paper'] = store.get('paper', ident)
+                except ValueError:
+                    pass
+            results.append(item)
+    return {'items': results}

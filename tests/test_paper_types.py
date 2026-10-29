@@ -6,8 +6,7 @@ from unittest.mock import patch
 
 import test_core
 from test_figure_reading import generator, response
-from test_presentations import slide
-from paperpilot import documents, paper_types, presentations, reading, reading_outline, service, store
+from paperpilot import documents, paper_types, reading, reading_outline, service, store
 
 
 class PaperTypes(unittest.TestCase):
@@ -111,26 +110,3 @@ class PaperTypes(unittest.TestCase):
                 self.assertEqual(report['sections'][-1]['key'], 'relevance')
                 self.assertEqual(len(figures), 1)
                 self.assertIn('不逐篇罗列', reading.mode_guide('overview', paper_types.SURVEY_OUTLINE, 'survey'))
-
-    def test_survey_ppt_uses_map_and_shared_outline_for_both_providers(self):
-        paper = self.paper()
-        paper_types.update(paper, {'paper_type': 'survey', 'reading_outline': ['领域地图', '开放问题']})
-        plan = [{'index': i, 'title': '讲解', 'purpose': '原文依据', 'layout': 'cover' if i == 1 else 'explain',
-                 'pages': [1], 'figure_ids': []} for i in range(1, 7)]
-        def model(config, system, messages, images=(), **kwargs):
-            self.assertIn('先提出领域问题、建立总地图', system)
-            self.assertIn('不套用范例论文的领域分类', system)
-            prompt = messages[0]['content']
-            if '为原论文重新设计' in prompt:
-                self.assertIn('"outline": ["领域地图", "开放问题"]', prompt)
-                value = {'slides': plan}
-            else:
-                batch = json.loads(prompt.split('只写本批：')[1].split('\n图表目录：')[0])
-                value = {'slides': [slide(p['index'], p['layout']) for p in batch]}
-            return response(value)
-        for provider in ('codex', 'deepseek'):
-            with patch('paperpilot.providers.generate', side_effect=model):
-                deck = presentations.generate(paper, dict(store.settings(), provider=provider), lambda _: None)
-            self.assertEqual(deck['paper_type'], 'survey')
-            self.assertEqual(deck['reading_outline'], ['领域地图', '开放问题'])
-            self.assertEqual(len(deck['slides']), 6)

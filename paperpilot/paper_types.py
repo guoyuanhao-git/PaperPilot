@@ -96,7 +96,7 @@ def prepare(paper, config, progress):
     return paper
 
 
-def instruction(paper, *, presentation=False):
+def instruction(paper):
     if effective(paper) != 'survey':
         return ''
-    return SURVEY_GUIDE.replace(SURVEY_REPORT_GUIDE, '') if presentation else SURVEY_GUIDE
+    return SURVEY_GUIDE

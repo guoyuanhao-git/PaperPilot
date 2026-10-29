@@ -6,7 +6,7 @@ ROOT = Path(__file__).resolve().parent.parent
 SINGLE = ['README.md', 'AGENTS.md', 'requirements.txt', 'run.sh', 'package.json', 'package-lock.json',
           'run.cmd', '启动 PaperPilot.cmd', '停止 PaperPilot.cmd',
           '.gitignore', '.gitattributes', '启动 PaperPilot.command', '停止 PaperPilot.command',
-          'tools/open-app.sh', 'tools/build_macos_app.py', 'tools/presentation-export.mjs',
+          'tools/open-app.sh', 'tools/build_macos_app.py',
           'PaperPilot.app/Contents/Info.plist', 'PaperPilot.app/Contents/MacOS/PaperPilot',
           'PaperPilot.app/Contents/Resources/PaperPilot.icns', 'paperpilot/conference_registry.json', 'tests/fixtures/conference-seed.json',
           'tools/export.mjs', 'tools/package_source.py', 'tools/build-graph.mjs',

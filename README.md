@@ -1,6 +1,6 @@
 # PaperPilot
 
-本地个人科研工作台：论文检索与阅读、图表裁剪、问答、PDF / 讲解 PPT 导出、个性化知识图谱、热点发现和会议日程。先启动应用，再在页面配置模型；启动不需要 API Key。
+本地个人科研工作台：论文检索与阅读、图表裁剪、问答、PDF 导出、个性化知识图谱、热点发现和会议日程。先启动应用，再在页面配置模型；启动不需要 API Key。
 
 **当前主开发环境为 macOS。Windows 原生启停、离线回归及 Codex/DeepSeek 核心真实流程已有实机验收记录，详见 [Windows 验证报告](docs/WINDOWS_VALIDATION.md)。合并后的版本仍需 Windows 回归；未测范围和 macOS 合并验证结果见报告末尾。**
 
@@ -18,7 +18,7 @@ npx playwright install chromium
 
 浏览器打开 http://127.0.0.1:8765/ 。首次创建本地用户，再进入“模型设置”。后续可双击项目内 `PaperPilot.app` 或 `启动 PaperPilot.command`；用 `停止 PaperPilot.command` 停止后台服务。不要把 `.app` 单独移出项目，桌面可放替身。
 
-PDF/PPT 导出需要 Node.js、项目依赖和 Chrome/Playwright Chromium；Linux 另需浏览器系统依赖和中文字体。`PAPERPILOT_CHROME` 可指定浏览器路径，`PAPERPILOT_PYTHON` 可指定 Python。
+PDF 导出需要 Node.js、项目依赖和 Chrome/Playwright Chromium；Linux 另需浏览器系统依赖和中文字体。`PAPERPILOT_CHROME` 可指定浏览器路径，`PAPERPILOT_PYTHON` 可指定 Python。
 
 ## Windows 首次使用
 
@@ -39,7 +39,7 @@ npx.cmd playwright install chromium
 
 默认数据位于项目 `data/`，日志位于 `data/desktop/service.log`；设置 `PAPERPILOT_DATA` 后日志和启动记录位于该数据目录的 `desktop/`。启动和停止须使用相同的数据目录。端口冲突时按提示处理，不会停止占用端口的其他服务。启动器不自动安装依赖。
 
-Windows 直接运行开发测试时建议先设置 `$env:PYTHONUTF8 = '1'`。桌面启停已验证，完整 Python 回归、PDF/PPT 导出和真实模型调用的状态见验证报告。
+Windows 直接运行开发测试时建议先设置 `$env:PYTHONUTF8 = '1'`。桌面启停已验证，完整 Python 回归、PDF 导出和真实模型调用的状态见验证报告。
 
 ## 模型接入
 
@@ -53,7 +53,7 @@ Windows 直接运行开发测试时建议先设置 `$env:PYTHONUTF8 = '1'`。桌
 ## 主要工作流
 
 - 论文库：在读、已读、喜欢、收藏；喜欢与收藏互斥。待读清单用于正式导入前暂存候选。
-- 论文阅读：研究论文或综述，支持速览、中文精读、数学精读；可定制叙述线及参考例文，支持独立讲解 PPT。多标签页阅读，最多三个后台生成任务并行。
+- 论文阅读：研究论文或综述，支持速览、中文精读、数学精读；可定制叙述线及参考例文。多标签页阅读，最多三个后台生成任务并行。
 - 知识库：领域图谱组织收藏与喜欢；各研究主线在领域骨架上接入相关已读论文。每个账户每层只保留一份当前图谱，支持增量、重建及可选定时更新。
 - 热点发现：具身日报、HF 全量列表、领域动态。具身日报为独立外部服务，地址可由 `PAPERPILOT_EMBODIED_DAILY_URL` 覆盖；外部服务不可达不影响本地阅读。当前默认仍为实验室提供的服务入口，正式发布时再替换公共域名。
 - 会议日程：内置模块，从官方来源核查，保留历史，不依赖原独立站的 API 或云端定时器。
@@ -90,3 +90,5 @@ npm run build:graph
 | `AGENTS.md` | 所有开发会话共同遵循的规则 |
 
 当前私有协作阶段尚未选择开源许可证；公开发布前再完成许可与素材权利审核。
+
+Windows 已有安装的本轮更新与验收，请交给 Codex 按 [合并后复核说明](docs/WINDOWS_SYNC_2026-10-29.md) 执行。

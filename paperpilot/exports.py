@@ -11,21 +11,15 @@ from . import documents, store, publication
 
 
 def validate_request(paper, format):
-    if format not in ('pdf','pptx'):
-        raise ValueError('仅支持 PDF 和 PPTX')
-    if format == 'pptx':
-        if paper.get('metadata_only') or paper.get('pdf_released'):
-            raise ValueError('请先下载或上传原文 PDF，再生成讲解 PPT')
-    elif not paper.get('report'):
+    if format != 'pdf':
+        raise ValueError('仅支持 PDF 导出')
+    if not paper.get('report'):
         raise ValueError('请先生成论文解读')
 
 
 def export(ident, format, progress, paper=None, config=None):
     paper = copy.deepcopy(paper or publication.apply(store.get('paper', ident)))
     validate_request(paper, format)
-    if format=='pptx':
-        from . import presentations
-        return presentations.export(paper,config or store.settings(),progress)
     snapshot = copy.deepcopy(paper['report'])
     node = shutil.which('node')
     if not node:

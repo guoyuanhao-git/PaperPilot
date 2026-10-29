@@ -10,7 +10,7 @@ import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from . import embodied_daily, conferences, workspace, model_setup
-from . import discovery, documents, providers, service, store, user_profile, assistant_memory, daily, collections, publication, credentials, abstracts, hf_daily, title_search, library, recommendation_chat, knowledge, historical, historical_pdf, paper_identity, accounts, codex_account, style_samples, style_cache, presentation_samples, news_sources, knowledge_schedule, hf_topics, hotspot_triage, paper_storage
+from . import discovery, documents, providers, service, store, user_profile, assistant_memory, daily, collections, publication, credentials, abstracts, hf_daily, title_search, library, recommendation_chat, knowledge, historical, historical_pdf, paper_identity, accounts, codex_account, style_samples, style_cache, news_sources, knowledge_schedule, hf_topics, hotspot_triage, paper_storage
 
 TOKEN = secrets.token_urlsafe(32)
 
@@ -105,8 +105,6 @@ class Handler(BaseHTTPRequestHandler):
                 return self.response(accounts.public())
             if path == '/api/style-cache':
                 return self.response(style_cache.status())
-            if path == '/api/ppt-style':
-                return self.response(presentation_samples.status())
             if path == '/api/model-setup':
                 return self.response({'token': TOKEN, **model_setup.public(self.server.server_port)})
             if path == '/api/codex-status':
@@ -125,7 +123,7 @@ class Handler(BaseHTTPRequestHandler):
                 if mainline not in {line['key'] for line in knowledge.mainline_options()}:
                     mainline = ''
                 mainline = knowledge.default_mainline(mainline)
-                return self.response({'token': TOKEN, 'accounts': accounts.public(), 'codex_setup': codex_account.setup(), 'style_samples': style_samples.public(), 'style_cache': style_cache.status(), 'ppt_samples': presentation_samples.public(), 'ppt_style': presentation_samples.status(), 'settings': config, 'workspace': workspace.current(), 'embodied_daily': embodied_daily.links(), 'capabilities': providers.capabilities(config),
+                return self.response({'token': TOKEN, 'accounts': accounts.public(), 'codex_setup': codex_account.setup(), 'style_samples': style_samples.public(), 'style_cache': style_cache.status(), 'settings': config, 'workspace': workspace.current(), 'embodied_daily': embodied_daily.links(), 'capabilities': providers.capabilities(config),
                                       'profile': user_profile.get(), 'memory_status': assistant_memory.status(), 'news_sources': news_sources.current(), 'sources': news_sources.catalog(), 'papers': papers, 'reading_stats': library.statistics(papers),
                                       'knowledge': knowledge.current(mainline=mainline), 'historical_import': historical.latest(), 'knowledge_schedule': knowledge_schedule.status(),
                                       'reading_history': store.all_objects('reading_history'), 'analysis_jobs': service.analysis_statuses(),
@@ -182,12 +180,6 @@ class Handler(BaseHTTPRequestHandler):
                 raise ValueError('请求大小超出限制')
             raw = self.rfile.read(length)
             path = urllib.parse.urlparse(self.path).path
-            if path in ('/api/ppt-samples/upload','/api/ppt-samples/source'):
-                filename=urllib.parse.unquote(self.headers.get('X-Filename','example.pptx'))
-                items=(presentation_samples.upload(raw,filename) if path.endswith('/upload') else
-                       presentation_samples.attach_source(self.headers.get('X-Sample-Id'),raw,filename))
-                presentation_samples.start()
-                return self.response({'items':items,'style_cache':presentation_samples.status()})
             if path == '/api/style-samples/upload':
                 filename = urllib.parse.unquote(self.headers.get('X-Filename', 'example.pdf'))
                 items = style_samples.upload(raw, filename)
@@ -226,11 +218,6 @@ class Handler(BaseHTTPRequestHandler):
             if path == '/api/crop-caption-translate':
                 from . import caption_selection
                 return self.response(caption_selection.translate(body['id'], body['page'], body['text']))
-            if path in ('/api/ppt-samples','/api/ppt-mode','/api/ppt-style'):
-                if path=='/api/ppt-samples':presentation_samples.change(body['id'],body.get('action'),body.get('enabled'))
-                if path=='/api/ppt-mode':presentation_samples.set_mode(body.get('mode'))
-                presentation_samples.start()
-                return self.response({'items':presentation_samples.public(),'mode':presentation_samples.mode(),'style_cache':presentation_samples.status()})
             if path == '/api/accounts/create':
                 return self.response(accounts.create(body.get('name')))
             if path == '/api/accounts/switch':
@@ -252,6 +239,18 @@ class Handler(BaseHTTPRequestHandler):
                 return self.response(historical_pdf.find_date(body['id'],body['title']))
             if path == '/api/historical-pdf-finish':
                 return self.response(historical_pdf.finish(body['id'],body['title'],body['month'],body['short_title'],body['target']))
+            if path == '/api/paper-report-preview':
+                return self.response(paper_storage.report_preview(body['id']))
+            if path == '/api/paper-report-delete':
+                return self.response(paper_storage.delete_report(body['id'], body.get('revision')))
+            if path == '/api/paper-report-batch-preview':
+                return self.response(paper_storage.batch_storage(body.get('ids'), reports=True))
+            if path == '/api/paper-report-batch-delete':
+                return self.response(paper_storage.batch_storage(body.get('ids'), reports=True, release_files=True, revisions=body.get('revisions')))
+            if path == '/api/paper-storage-batch-preview':
+                return self.response(paper_storage.batch_storage(body.get('ids')))
+            if path == '/api/paper-storage-batch-release':
+                return self.response(paper_storage.batch_storage(body.get('ids'), release_files=True))
             if path == '/api/paper-storage-preview':
                 return self.response(paper_storage.preview(body['id']))
             if path == '/api/paper-storage-release':
@@ -436,8 +435,6 @@ class Handler(BaseHTTPRequestHandler):
                 return self.response(service.cancel_chat(body['job_id']))
             if path == '/api/chat':
                 return self.response(service.chat(body['id'], body['question']))
-            if path == '/api/presentation':
-                return self.response(export_report(body['id'], 'pptx'))
             if path == '/api/export':
                 return self.response(export_report(body['id'], body['format']))
             if path == '/api/news-sources/probe':
