@@ -7,6 +7,30 @@ from paperpilot import store
 
 @unittest.skipUnless(shutil.which('node'), 'Node required for shared browser rendering')
 class ReaderUi(unittest.TestCase):
+    def test_report_inline_math_and_legacy_equation_notes(self):
+        subprocess.run(['node', '-e', r'''
+const assert=require('node:assert/strict'),r=require('./web/report-view.js'),katex=require('katex');
+const math=(s,d)=>katex.renderToString(s,{displayMode:d,throwOnError:true,trust:false});
+const e={latex:String.raw`P_{ee}=P_o-d\vec{a}_o`,meaning:'接触点P_o、接近轴a_o和偏移距离$d$。',implementation:'使用 $P_{ee}$ 计算。'};
+// Only symbols unambiguously present in the corresponding equation are restored.
+const html=r.equationNoteHTML(e,'deep',math);
+assert.equal((html.match(/class="katex"/g)||[]).length,4);
+assert(!html.includes('katex-error'));assert(!html.includes('接触点P_o'));
+assert.equal(r.inline('file_name source.pdf 50% 12.5'), 'file_name source.pdf 50% 12.5');
+const explicit=r.inline(String.raw`接触点 $P_o$ 与 \(a_o\) <img src=x onerror=alert(1)>`,math);
+assert.equal((explicit.match(/class="katex"/g)||[]).length,2);assert(!explicit.includes('<img'));
+const calls=[];const render=(s,d)=>{calls.push([s,d]);return '<math>safe</math>'};
+assert.equal(r.inline('`P_o` https://example.org/P_o file_P_o P_other P_o',render,[],r.equationSymbols('P_o')), '<code>P_o</code> https://example.org/P_o file_P_o P_other <math>safe</math>');
+assert.deepEqual(calls,[['P_o',false]]);
+const section={key:'method',paragraphs:[String.raw`重点：$P_o$ 与 \(a_o\)。`],highlights:['重点'],figures:[],equations:[]};
+assert.match(r.sectionContent(section,()=>'',()=>'',math),/<mark>重点<\/mark>/);
+assert.match(r.sectionContent(section,()=>'',()=>'',math),/class="katex"/);
+const abstract={...section,key:'abstract'};assert.match(r.sectionBody(abstract,false,math),/class="katex"/);
+assert.equal(r.inline('$P_o$',()=>{throw Error('invalid')}),'P_o');
+assert.match(r.inline('$\\href{javascript:alert(1)}{x}$',math),/katex/);
+assert(!r.inline('$\\href{javascript:alert(1)}{x}$',math).includes('href="javascript:'));
+'''], cwd=store.ROOT, check=True, capture_output=True)
+
     def test_recommendation_numbering_across_paragraphs_and_blank_lines(self):
         subprocess.run(['node', '-e', r'''
 const assert=require('node:assert/strict'),chat=require('./web/chat-view.js');

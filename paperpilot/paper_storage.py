@@ -34,6 +34,13 @@ def recover():
             for path in staging.iterdir():
                 path.replace(folder / path.name)
         shutil.rmtree(staging)
+    # Interrupted model requests leave only disposable job-local image copies.
+    for paper in store.all_objects('paper'):
+        for folder in documents.directory(paper['id']).glob('.model-images-*'):
+            if folder.is_dir() and not folder.is_symlink():
+                shutil.rmtree(folder)
+    from . import image_cache
+    image_cache.trim()
 
 
 def idle(ident, allow_restore=False):
@@ -252,7 +259,7 @@ def cleanup_report_images(paper, previous_report):
         return
     with documents.PDF_LOCK:
         try:
-            keep = {documents.crop_figure(paper['id'], f).name
+            keep = {f.get('image_file') or documents.crop_path(paper['id'], f, paper).name
                     for f in (paper.get('report') or {}).get('figures', [])}
         except (OSError, ValueError):
             return  # The saved report wins over optional cache cleanup.
@@ -264,6 +271,8 @@ def cleanup_report_images(paper, previous_report):
                     (documents.directory(paper['id']) / name).unlink(missing_ok=True)
                 except OSError:
                     pass
+        from . import image_cache
+        image_cache.trim()
 
 
 def download(ident):

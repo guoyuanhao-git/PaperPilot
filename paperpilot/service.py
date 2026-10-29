@@ -338,10 +338,10 @@ def chat(ident, question):
         figures = (paper.get('report') or {}).get('figures', []) if paper.get('pdf_released') else [f for f in paper['figures'] if f['selected']]
         if paper.get('pdf_released'):
             messages[0]['content'] += '\n原文 PDF 已释放；依据保留的正文文字和报告图表回答，不声称查看了未保留的原图。'
-        images = [documents.crop_figure(ident, f) for f in figures] if config['vision'] else []
-        messages[0]['content'] += '\n图表目录：' + json.dumps(figures, ensure_ascii=False) + ('\n已附所选图像。' if images else '\n未附图像，仅有图注，请勿声称看到了图像细节。')
-        progress('结合论文原文和对话历史回答')
-        response = providers.generate(config, system_prompt(), messages, images)
+        with documents.model_images(ident, figures, config['vision']) as images:
+            messages[0]['content'] += '\n图表目录：' + json.dumps(figures, ensure_ascii=False) + ('\n已附所选图像。' if images else '\n未附图像，仅有图注，请勿声称看到了图像细节。')
+            progress('结合论文原文和对话历史回答')
+            response = providers.generate(config, system_prompt(), messages, images)
         with SAVE_LOCK:
             cancellation.check()
             current = store.get('paper', ident)

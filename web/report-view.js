@@ -20,6 +20,43 @@
    out+=escape(text.slice(at,found.pos))+'<mark>'+escape(found.term)+'</mark>';at=found.pos+found.term.length;
   }return out;
  }
+ // Only explicit math is interpreted in prose. Legacy equation notes may also
+ // use symbols verified against their own equation, never arbitrary snake_case.
+ function equationSymbols(latex){
+  const symbols=new Map();
+  const source=String(latex||'').replace(/\\(?:vec|hat|bar|tilde|mathbf|mathrm)\{([A-Za-z])\}(?=[_^])/g,' $1');
+  for(const m of source.matchAll(/(?<![A-Za-z\\])[A-Za-z](?:[_^](?:\{[A-Za-z0-9]+\}|[A-Za-z0-9]))+/g)){
+   const symbol=m[0];symbols.set(symbol,symbol);
+   symbols.set(symbol.replace(/\{([A-Za-z0-9]+)\}/g,'$1'),symbol);
+  }
+  return symbols;
+ }
+ function inline(value,formula,terms=[],symbols=new Map()){
+  const text=String(value??'');
+  const render=(latex,display=false)=>{
+   try{return formula?formula(latex,display):root.katex?root.katex.renderToString(latex,{throwOnError:false,displayMode:display,trust:false}):escape(latex)}catch{return escape(latex)}
+  };
+  const plain=value=>{
+   if(!symbols.size)return marked(value,terms);
+   const pattern=new RegExp('(?<![A-Za-z0-9_\\\\])('+[...symbols.keys()].sort((a,b)=>b.length-a.length).map(s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|')+')(?![A-Za-z0-9_])','g');
+   let out='',at=0;
+   for(const m of value.matchAll(pattern)){out+=marked(value.slice(at,m.index),terms)+render(symbols.get(m[0]));at=m.index+m[0].length}
+   return out+marked(value.slice(at),terms);
+  };
+  const pattern=/`[^`\n]+`|https?:\/\/[^\s<>]+|\$\$[\s\S]+?\$\$|\\\[[\s\S]+?\\\]|(?<![\\$])\$(?!\$)[^$\n]+?\$(?!\$)|\\\([^\n]*?\\\)/g;
+  let out='',at=0;
+  for(const m of text.matchAll(pattern)){
+   out+=plain(text.slice(at,m.index));const token=m[0];
+   if(token.startsWith('`'))out+='<code>'+escape(token.slice(1,-1))+'</code>';
+   else if(/^https?:/.test(token))out+=escape(token);
+   else{const display=token.startsWith('$$')||token.startsWith('\\['),width=token.startsWith('$')&&!display?1:2;out+=render(token.slice(width,-width),display)}
+   at=m.index+token.length;
+  }
+  return out+plain(text.slice(at));
+ }
+ function equationNoteHTML(e,mode,formula){
+  return equationNotes(e,mode).map(t=>'<p>'+inline(references(t),formula,[],equationSymbols(e.latex))+'</p>').join('');
+ }
  function references(value){return String(value??'').replace(/左(?:侧)?(?:子)?图/g,'Left').replace(/右(?:侧)?(?:子)?图/g,'Right').replace(/（左）|\(左\)/g,'(Left)').replace(/（右）|\(右\)/g,'(Right)').replace(/(图|表)\s*([A-Z]?\d+(?:[.\-]\d+)*[a-z]?|[A-Z]\.\d+)/g,(_,kind,n)=>(kind==='图'?'Figure ':'Table ')+n)}
  function paperSection(info){
   const paragraphs=[];
@@ -38,15 +75,17 @@
  }
  function equationNotes(e,mode){return (mode==='deep'?[e.meaning,e.implementation]:[e.meaning||e.implementation]).filter(t=>typeof t==='string'&&t.trim())}
  function sections(report){return [paperSection(report.paper_info),...report.sections.filter(s=>s.key!=='paper_info'&&!/论文身份|论文相关/.test(s.title))]}
- function sectionBody(s,interactive=false){
+ function sectionBody(s,interactive=false,formula){
   if(s.key==='paper_info')return s.paragraphs.map(p=>{
    let html=escape(p).replace(/https?:\/\/[^\s]+/g,url=>'<a href="'+url+'" target="_blank" rel="noopener">'+url+'</a>');
    if(interactive&&p.startsWith('作者：'))html=html.replace(/^作者：/,'<button type="button" class="metadata-action" data-citation-role="first" title="填写第一作者引用量" aria-label="作者：填写第一作者引用量">作者</button>：').replace('　通讯：','　<button type="button" class="metadata-action" data-citation-role="corresponding" title="填写通讯作者引用量" aria-label="通讯：填写通讯作者引用量">通讯</button>：');
    return '<p>'+html+'</p>';
   }).join('');
-  if(s.key==='abstract')return `<div class="abstract-box">${s.paragraphs.map(p=>`<p>${escape(references(p))}</p>`).join('')}</div>`;
+  if(s.key==='abstract')return `<div class="abstract-box">${s.paragraphs.map(p=>`<p>${inline(references(p),formula)}</p>`).join('')}</div>`;
   const terms=highlights(s).map(references);
-  return s.paragraphs.flatMap(p=>chunks(references(p))).map(p=>`<p>${marked(p,terms)}</p>`).join('');
+  // Keep math-bearing paragraphs intact so punctuation/newlines inside LaTeX
+  // cannot split a delimiter pair before rendering.
+  return s.paragraphs.flatMap(p=>/\$|\\[([]/.test(p)?[references(p)]:chunks(references(p))).map(p=>`<p>${inline(p,formula,terms)}</p>`).join('');
  }
  function label(f){
   const match=String(f.caption||'').match(/^\s*(Figure|Fig\.?|Table|图|表)\s*([A-Z]\.\d+|[A-Z]?\d+(?:[.\-]\d+)*|[IVX]+)(?=\s|[:：.．|｜]|$)/i);
@@ -58,11 +97,11 @@
   text=text.replace(/^PDF\s*第\s*[\d、,\s]+\s*页\s*[·:：]?\s*/i,'').replace(/^\s*(?:Figure|Fig\.?|Table|图|表)\s*(?:[A-Z]\.\d+|[A-Z]?\d+(?:[.\-]\d+)*|[IVX]+)\s*[:：.．|｜]?\s*/i,'');
   return label(f)+(text?': '+references(text):'');
  }
- function sectionContent(s,figure,equation){
-  if(s.key==='abstract')return sectionBody(s);
+ function sectionContent(s,figure,equation,formula){
+  if(s.key==='abstract')return sectionBody(s,false,formula);
   const blocks=s.blocks||[s];
-  return blocks.map(b=>(b.figure_first||s.blocks?(b.figures||[]).map(figure).join(''):'')+sectionBody(b)+(b.equations||[]).map(equation).join('')+(!b.figure_first&&!s.blocks?(b.figures||[]).map(figure).join(''):'')).join('');
+  return blocks.map(b=>(b.figure_first||s.blocks?(b.figures||[]).map(figure).join(''):'')+sectionBody(b,false,formula)+(b.equations||[]).map(equation).join('')+(!b.figure_first&&!s.blocks?(b.figures||[]).map(figure).join(''):'')).join('');
  }
- const api={equationNotes,sections,paperSection,references,label,sectionContent,escape,theme,chunks,highlights,marked,sectionBody,caption};
+ const api={inline,equationSymbols,equationNoteHTML,equationNotes,sections,paperSection,references,label,sectionContent,escape,theme,chunks,highlights,marked,sectionBody,caption};
  if(typeof module!=='undefined')module.exports=api;else root.ReportView=api;
 })(globalThis);

@@ -141,14 +141,15 @@ class Handler(BaseHTTPRequestHandler):
                 store.get('paper', ident)
                 folder = documents.directory(ident)
                 if name.startswith('page-'):
-                    file = documents.render_page(ident, int(re.search(r'\d+', name)[0]))
+                    return self.response(documents.page_bytes(ident, int(re.search(r'\d+', name)[0])), mime='image/png')
                 elif name.startswith('fig-'):
                     p = store.get('paper', ident)
-                    figure_list = (p.get('report') or {}).get('figures', []) if urllib.parse.parse_qs(parsed.query).get('report') == ['1'] else p['figures']
+                    report_image = urllib.parse.parse_qs(parsed.query).get('report') == ['1']
+                    figure_list = (p.get('report') or {}).get('figures', []) if report_image else p['figures']
                     f = next((f for f in figure_list if f['id'] + '.png' == name), None)
                     if not f:
                         raise ValueError('找不到图表')
-                    file = documents.crop_figure(ident, f)
+                    return self.response(documents.figure_bytes(ident, f, quality='reading' if report_image else 'model'), mime='image/png')
                 else:
                     file = (folder / 'exports' / name) if name.startswith('report-') else (folder / name)
                 return self.response(file.read_bytes(), mime=mimetypes.guess_type(name)[0] or 'application/octet-stream',
@@ -412,6 +413,8 @@ class Handler(BaseHTTPRequestHandler):
                                 assistant_memory.forget_paper(p['id'], [kind])
                             else:
                                 assistant_memory.capture(kind, p[field], p['id'], p['title'])
+                from . import image_cache
+                image_cache.trim()
                 return self.response(p)
             if path == '/api/paper-reading':
                 return self.response(library.change(body['id'], body.get('action'), body.get('report_at'), body.get('starred'), body.get('preference')))

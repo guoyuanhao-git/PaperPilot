@@ -12,6 +12,12 @@ from . import documents, providers, store, paper_info, report_cache, reasoning, 
 from .schemas import obj
 
 
+INLINE_MATH_RULE = (r'报告文字中的数学变量和表达式（包括 paragraphs、公式 meaning/implementation、图注）必须用 $...$ 或 \( ... \) 包围，'
+                    r'例如接触点 $P_o$、接近轴 $a_o$、距离 $d$；不能把 P_o 这样的 LaTeX 记号裸写在中文里。'
+                    r'equations.latex 只放公式本体，不加美元符号或外层定界符；JSON 中的反斜杠必须正确转义。'
+                    '文件名、路径、程序变量和普通数字保持普通文字，不伪装成数学公式。')
+
+
 def stage_config(config, stage, images=False):
     """Keep reasoning for research; avoid it for bounded editorial operations."""
     result = providers.image_config(config) if images else config
@@ -39,7 +45,7 @@ def build(paper, mode, config, progress, system, report_schema, validate_report,
 
 def _build(paper, mode, config, progress, system, report_schema, validate_report, figure_scope, checkpoints):
     paper = dict(paper, reading_outline=paper_types.outline(paper))
-    system += '\n' + paper_types.instruction(paper)
+    system += '\n' + paper_types.instruction(paper) + '\n' + INLINE_MATH_RULE
     config = dict(config, output_tokens=providers.output_limit(config))
     figures = sorted([dict(f, selected=True) for f in paper['figures'] if not f.get('duplicate_of') and (figure_scope == 'all' or f['selected'])],
                      key=lambda f: (f['page'], f['bbox'][1], f['bbox'][0]))
@@ -156,22 +162,22 @@ def _build(paper, mode, config, progress, system, report_schema, validate_report
         relevant = {n for f in batch for n in (f['page'] - 1, f['page'], f['page'] + 1)}
         local = '\n\n'.join(f"[PDF 第 {p['page']} 页]\n{p['text']}" for p in pages if p['page'] in relevant)
         local = local[:config['context_chars']]
-        images = [documents.crop_figure(paper['id'], f) for f in batch] if config['vision'] else []
-        prompt = ('以图表为线索写中文解读，只返回 items JSON 数组，每个输入 id 恰好对应一条。'
-                  '这是内部证据笔记，不是最终报告。评估图表是否有独立贡献，正文和附录均可判为不值得展示，'
-                  '不按数量截取，reason 简述保留或不收录的理由。先理解全部输入图注，再分析。'
-                  '左右子图使用 Left / Right，保留 (a)/(b) 等原始标记。title 使用原文 Figure/Table 编号；caption 简短中文说明，建议 30–80 字；'
-                  + 'focus 从以下章节 key 中选最贴切的一项：' + json.dumps(focus_keys) + '；用户叙述线：' + json.dumps(chapter_specs, ensure_ascii=False)
-                  +
-                  'paragraphs 2–3 段，总计 200–350 中文字：看哪里（轴、模块、指标和条件）；说明了什么以及与问题/方法的联系；'
-                  '没有证明什么或适用边界。图表不支持的数字、因果或作者意图不能补造。'
-                  'highlights 1–3 条逐字来自正文，每条不超过 100 字。每个候选都要给 caption、reason 和简短证据 paragraphs，以供后续全局筛选。'
-                  + ('已按目录顺序附全部本批图像；裁剪缺失或不清晰请明确说明。' if images else '未附图像，仅依据原始图注和正文，不要声称看见图中细节。')
-                  + '\n已核对阅读框架：' + json.dumps(report, ensure_ascii=False)
-                  + '\n本批目录：' + json.dumps([{k: f.get(k) for k in ('id', 'page', 'caption', 'kind', 'region')} for f in batch], ensure_ascii=False)
-                  + '\n对应原文（受文字上限约束）：\n' + local)
-        response = invoke(f'逐图阅读 {start + 1}–{start + len(batch)} / {len(figures)}',
-                          prompt, obj({'items': array(item_schema)}), images)
+        with documents.model_images(paper['id'], batch, config['vision']) as images:
+            prompt = ('以图表为线索写中文解读，只返回 items JSON 数组，每个输入 id 恰好对应一条。'
+                      '这是内部证据笔记，不是最终报告。评估图表是否有独立贡献，正文和附录均可判为不值得展示，'
+                      '不按数量截取，reason 简述保留或不收录的理由。先理解全部输入图注，再分析。'
+                      '左右子图使用 Left / Right，保留 (a)/(b) 等原始标记。title 使用原文 Figure/Table 编号；caption 简短中文说明，建议 30–80 字；'
+                      + 'focus 从以下章节 key 中选最贴切的一项：' + json.dumps(focus_keys) + '；用户叙述线：' + json.dumps(chapter_specs, ensure_ascii=False)
+                      +
+                      'paragraphs 2–3 段，总计 200–350 中文字：看哪里（轴、模块、指标和条件）；说明了什么以及与问题/方法的联系；'
+                      '没有证明什么或适用边界。图表不支持的数字、因果或作者意图不能补造。'
+                      'highlights 1–3 条逐字来自正文，每条不超过 100 字。每个候选都要给 caption、reason 和简短证据 paragraphs，以供后续全局筛选。'
+                      + ('已按目录顺序附全部本批图像；裁剪缺失或不清晰请明确说明。' if images else '未附图像，仅依据原始图注和正文，不要声称看见图中细节。')
+                      + '\n已核对阅读框架：' + json.dumps(report, ensure_ascii=False)
+                      + '\n本批目录：' + json.dumps([{k: f.get(k) for k in ('id', 'page', 'caption', 'kind', 'region')} for f in batch], ensure_ascii=False)
+                      + '\n对应原文（受文字上限约束）：\n' + local)
+            response = invoke(f'逐图阅读 {start + 1}–{start + len(batch)} / {len(figures)}',
+                              prompt, obj({'items': array(item_schema)}), images)
         items = response['value'].get('items')
         if not isinstance(items, list) or any(not isinstance(i, dict) or not isinstance(i.get('id'), str) for i in items) or len(items) != len(batch) or {i['id'] for i in items} != ids:
             raise ValueError('图表分析未覆盖本批全部 ID，旧报告保留')

@@ -40,9 +40,8 @@ def export(ident, format, progress, paper=None, config=None):
     figures = paper['report'].get('figures', [])
     for f in figures:
         # Freeze actual image bytes so changing a crop later cannot change a completed export.
-        source = documents.crop_figure(ident, f)
         target = build / (f['id'] + '.png')
-        shutil.copyfile(source, target)
+        target.write_bytes(documents.figure_bytes(ident, f))
         f['path'] = str(target)
     source = build / 'report.json'
     source.write_text(json.dumps(payload, ensure_ascii=False))

@@ -1,6 +1,10 @@
 import hashlib
 import io
 import json
+import math
+import os
+import tempfile
+from contextlib import contextmanager
 import re
 import threading
 import uuid
@@ -79,30 +83,129 @@ def render_page(ident, page_no):
     return target
 
 
-def crop_figure(ident, figure):
-    from PIL import Image
-    cached = figure.get('image_file', '')
-    if re.fullmatch(r'crop-[a-f0-9]{16}\.png', cached):
-        target = directory(ident) / cached
-        if target.is_file():
-            return target
-        raise ValueError('旧报告图片缺失，不能用新版原文替代')
-    bbox = figure['bbox']
-    if len(bbox) != 4 or any(not isinstance(v, (int, float)) or not 0 <= v <= 1 for v in bbox) or bbox[0] >= bbox[2] or bbox[1] >= bbox[3]:
-        raise ValueError('裁剪区域必须为页面内的非空矩形')
-    key = [figure['page'], bbox]
-    revision = store.get('paper', ident).get('source_storage', {}).get('content_revision')
+def crop_path(ident, figure, paper, quality='reading'):
+    key = [figure['page'], figure['bbox']]
+    revision = paper.get('source_storage', {}).get('content_revision')
     if revision:
         key.append(revision)
+    if quality == 'reading':
+        key.append('direct-pdf-2400-4mp-v1')
     digest = hashlib.sha256(json.dumps(key).encode()).hexdigest()[:16]
-    target = directory(ident) / ('crop-' + digest + '.png')
-    if target.exists():
+    return directory(ident) / ('crop-' + digest + '.png')
+
+
+def crop_figure(ident, figure, quality='reading'):
+    """Return a cache path. Consume under PDF_LOCK before calling trim()."""
+    from PIL import Image
+    if quality not in ('reading', 'model'):
+        raise ValueError('无效图片质量')
+    with PDF_LOCK:
+        paper = store.get('paper', ident)
+        cached = figure.get('image_file', '')
+        if re.fullmatch(r'crop-[a-f0-9]{16}\.png', cached):
+            target = directory(ident) / cached
+            if target.is_file():
+                return target
+            raise ValueError('旧报告图片缺失，不能用新版原文替代')
+        bbox = figure['bbox']
+        if len(bbox) != 4 or any(not isinstance(v, (int, float)) or not 0 <= v <= 1 for v in bbox) or bbox[0] >= bbox[2] or bbox[1] >= bbox[3]:
+            raise ValueError('裁剪区域必须为页面内的非空矩形')
+        page_no = figure['page']
+        if type(page_no) is not int or not 1 <= page_no <= paper['page_count']:
+            raise ValueError('页码超出范围')
+        target = crop_path(ident, figure, paper, quality)
+        if paper.get('pdf_released') or not (directory(ident) / 'source.pdf').is_file():
+            # Compatibility: releases made before high-resolution rendering have
+            # only the original preview crop. Never require/re-download a PDF.
+            for saved in (crop_path(ident, figure, paper), crop_path(ident, figure, paper, 'model')):
+                if saved.is_file():
+                    return saved
+            raise ValueError('报告图片缺失，请先恢复原文 PDF')
+        if target.exists():
+            os.utime(target, None)
+            return target
+        temporary = directory(ident) / ('crop-' + uuid.uuid4().hex + '.tmp.png')
+        try:
+            if quality == 'model':
+                # Preserve the original model-input resolution, independently
+                # of reading/export quality. This cache is evictable too.
+                with Image.open(render_page(ident, page_no)) as image:
+                    with image.crop(tuple(round(bbox[i] * (image.width if i % 2 == 0 else image.height)) for i in range(4))) as crop:
+                        crop.save(temporary)
+            else:
+                with pdfium.PdfDocument(str(directory(ident) / 'source.pdf')) as doc:
+                    page = doc[page_no - 1]
+                    try:
+                        width, height = page.get_width(), page.get_height()
+                        cw, ch = width * (bbox[2] - bbox[0]), height * (bbox[3] - bbox[1])
+                        # Render the region directly; do not allocate a high-DPI
+                        # full page. Bound both dimensions and decoded pixels.
+                        scale = min(2400 / cw, 4096 / ch, math.sqrt(4_000_000 / (cw * ch)), 12)
+                        crop = (bbox[0] * width, (1 - bbox[3]) * height,
+                                (1 - bbox[2]) * width, bbox[1] * height)
+                        bitmap = page.render(scale=scale, crop=crop)
+                        try:
+                            with bitmap.to_pil() as image:
+                                image.save(temporary)
+                        finally:
+                            bitmap.close()
+                    finally:
+                        page.close()
+            temporary.replace(target)
+        finally:
+            temporary.unlink(missing_ok=True)
         return target
-    temporary = directory(ident) / ('crop-' + uuid.uuid4().hex + '.tmp.png')
-    with Image.open(render_page(ident, figure['page'])) as image:
-        image.crop(tuple(round(bbox[i] * (image.width if i % 2 == 0 else image.height)) for i in range(4))).save(temporary)
-    temporary.replace(target)
-    return target
+
+
+def figure_bytes(ident, figure, quality='reading'):
+    from . import image_cache
+    with PDF_LOCK:
+        try:
+            return crop_figure(ident, figure, quality=quality).read_bytes()
+        finally:
+            image_cache.trim()
+
+
+def page_bytes(ident, page_no):
+    from . import image_cache
+    with PDF_LOCK:
+        try:
+            target = render_page(ident, page_no)
+            os.utime(target, None)
+            return target.read_bytes()
+        finally:
+            image_cache.trim()
+
+
+@contextmanager
+def model_images(ident, figures, enabled=True):
+    """Small, immutable job-local snapshots, removed even on failure/cancel.
+
+    A provider (especially Codex) may read a path much later. Never give it an
+    evictable cache path or hold PDF_LOCK while waiting for the network.
+    """
+    from PIL import Image
+    from . import image_cache
+    if not enabled:
+        yield []
+        return
+    with tempfile.TemporaryDirectory(prefix='.model-images-', dir=directory(ident)) as folder:
+        paths = []
+        try:
+            for index, figure in enumerate(figures):
+                target = Path(folder) / f'{index}.png'
+                with PDF_LOCK:
+                    source = crop_figure(ident, figure, quality='model')
+                    with Image.open(source) as image:
+                        # Pinned/released images may be high-resolution. Keep a
+                        # conservative model ceiling even without the PDF.
+                        image.thumbnail((1600, 1600), Image.Resampling.LANCZOS)
+                        image.save(target)
+                    image_cache.trim()
+                paths.append(target)
+            yield paths
+        finally:
+            image_cache.trim()
 
 
 def caption_number(text):
@@ -213,9 +316,6 @@ def ingest(data, filename, source_url='', is_reference=False, target_id=None, ma
     library.initialize(paper)
     store.save('paper', paper)
     store.remove('reading_history', ident)
-    for f in figures:
-        if f['selected']:
-            crop_figure(ident, f)
     return paper
 
 

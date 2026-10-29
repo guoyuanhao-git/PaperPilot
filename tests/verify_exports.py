@@ -23,7 +23,7 @@ p['report'] = {
     'sections': [
         {'key':'abstract','title':'论文摘要 · 中文翻译','paragraphs':['这是原论文摘要的完整中文翻译测试，保留在网页、PDF 中。它与一句话核心思想分开显示。'], 'pages':[1], 'figures':[], 'equations':[]},
         {'key':'motivation','title':'动机','paragraphs':['用户希望迅速理解论文的研究问题和方法来由。这个软件测试验证中文内容可以清楚呈现，而不是验证任何论文结论。'], 'pages':[1],'figures':[], 'equations':[]},
-        {'key':'method','figure_first':True,'title':'方法与实现','paragraphs':['数学表达需要保持可读。下面的示例公式仅用于测试排版，训练时的采样方式和代码细节应当由真实原文确认。'], 'pages':[1],'figures':[p['figures'][0]['id']], 'equations':[{'latex':r'\mathcal{L}(\theta)=\mathbb{E}_{x,y}\left[\|f_\theta(x)-y\|^2\right]', 'meaning':'测试网络输出与目标之间的平方误差，所有符号均为软件测试样例。','implementation':'计算预测、目标和批次平均，示例并不代表某篇论文的真实代码。'}]},
+        {'key':'method','figure_first':True,'title':'方法与实现','paragraphs':['数学表达需要保持可读。下面的示例公式仅用于测试排版，训练时的采样方式和代码细节应当由真实原文确认。'], 'pages':[1],'figures':[p['figures'][0]['id']], 'equations':[{'latex':r'\mathcal{L}(\theta)=\mathbb{E}_{x,y}\left[\|f_\theta(x)-y\|^2\right]', 'meaning':r'测试 $f_\theta(x)$ 与目标之间的平方误差，所有符号均为软件测试样例。','implementation':'计算预测、目标和批次平均，示例并不代表某篇论文的真实代码。'}]},
         {'key':'experiments','title':'实验结果与适用条件','paragraphs':['测试检查 PDF 文字可提取、公式可显示、图表可以保留。这里没有真实科研实验结果。'], 'pages':[2],'figures':[],'equations':[]},
         {'key':'conclusion','title':'结论','paragraphs':['结论验证：四段研究故事线已闭合，测试仅说明导出结构，不代表真实论文结论。'], 'pages':[2],'figures':[],'equations':[]},
     ],
@@ -37,6 +37,8 @@ p['report']['sections'][2].update(paragraphs=[],highlights=[],equations=[])
 store.save('paper',p)
 info = exports.export(p['id'],'pdf',print)
 output = documents.directory(p['id']) / 'exports' / info['filename']
+html = next(documents.directory(p['id']).glob('build-*/report.html')).read_text()
+assert '<p>测试 <span class="katex">' in html
 from pypdf import PdfReader
 assert '2109' in PdfReader(output).pages[0].extract_text()
 assert '完整中文翻译测试' in unicodedata.normalize('NFKC', ''.join(page.extract_text() for page in PdfReader(output).pages))

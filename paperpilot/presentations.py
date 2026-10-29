@@ -171,35 +171,35 @@ def generate(paper,config,progress):
         batch=[p for p in group if str(p['index']) not in draft['slides']]
         if not batch:continue
         selected={f:figures[f] for p in batch for f in p['figure_ids']}
-        images=[documents.crop_figure(paper['id'],f) for f in selected.values()] if config.get('vision') else []
-        def check_batch(value):
-            items=value.get('slides',[])
-            if [s.get('index') for s in items]!=[p['index'] for p in batch]:raise ValueError('本批幻灯片缺失或重复')
-            checked=[];errors=[]
-            for s,p in zip(items,batch):
-                try:
-                    valid=validate_slide(s,p,local,figures,evidence)
-                    checked.append(valid);draft['slides'][str(p['index'])]=valid
-                except (ValueError,TypeError,KeyError) as error:
-                    previous=draft['slides'].get(str(p['index']))
-                    if previous:checked.append(previous)
-                    else:errors.append(f'第 {p["index"]} 页：{error}')
-            save_draft(draft_path,draft)
-            if errors:raise ValueError('；'.join(errors))
-            return checked
-        prompt=('编写本批幻灯片。结构字段全部给出，不适用用空字符串或空数组。每页标题简明，blocks最多4项，'
-          'heading标识要点，text解释，emphasis是正文中的一个短语。每页正文不超过约300中文字，图文/流程/表格页更短。'
-          'notes写教师的讲稿、例子、转场和限制，约200–450中文字，不仅重复幻灯片文字。'
-          'table是可编辑表格（最多5列7行），只使用提供的原文数据并说明比较条件。process用steps描述机制，非实验事实的示意请标明。'
-          'equation只填LaTeX并用equation_meaning解释用途。图表caption使用Figure/Table编号和中文说明。'
-          '每页 evidence_id 必须从下方原文片段中选择一个最能支撑核心论断的编号，pages 包含该片段对应的 PDF 页码。'
-          '不必抄写 evidence_quote，程序会自动附上对应原文；不能用范例或报告代替原文证据。'
-          'takeaway是一句带走的认识，无需每页复述摘要。cover保留原论文英文标题。'
-          +'\n风格：'+style+'\n全稿计划：'+json.dumps(plan,ensure_ascii=False)
-          +'\n只写本批：'+json.dumps(batch,ensure_ascii=False)+'\n图表目录：'+json.dumps(list(selected.values()),ensure_ascii=False)
-          +('\n附图顺序与目录一致。' if images else '\n未提供图片，只依据图注与正文，不声称看清图像细节。')
-          +'\n原文片段（编号 → PDF页码与原文）：'+json.dumps(evidence,ensure_ascii=False))
-        invoke(f'编写讲解与讲稿 {batch[0]["index"]}–{batch[-1]["index"]} / {len(plan)}',prompt,obj({'slides':array(slide_schema(list(evidence)),3)}),check_batch,images)
+        with documents.model_images(paper['id'], selected.values(), config.get('vision')) as images:
+            def check_batch(value):
+                items=value.get('slides',[])
+                if [s.get('index') for s in items]!=[p['index'] for p in batch]:raise ValueError('本批幻灯片缺失或重复')
+                checked=[];errors=[]
+                for s,p in zip(items,batch):
+                    try:
+                        valid=validate_slide(s,p,local,figures,evidence)
+                        checked.append(valid);draft['slides'][str(p['index'])]=valid
+                    except (ValueError,TypeError,KeyError) as error:
+                        previous=draft['slides'].get(str(p['index']))
+                        if previous:checked.append(previous)
+                        else:errors.append(f'第 {p["index"]} 页：{error}')
+                save_draft(draft_path,draft)
+                if errors:raise ValueError('；'.join(errors))
+                return checked
+            prompt=('编写本批幻灯片。结构字段全部给出，不适用用空字符串或空数组。每页标题简明，blocks最多4项，'
+              'heading标识要点，text解释，emphasis是正文中的一个短语。每页正文不超过约300中文字，图文/流程/表格页更短。'
+              'notes写教师的讲稿、例子、转场和限制，约200–450中文字，不仅重复幻灯片文字。'
+              'table是可编辑表格（最多5列7行），只使用提供的原文数据并说明比较条件。process用steps描述机制，非实验事实的示意请标明。'
+              'equation只填LaTeX并用equation_meaning解释用途。图表caption使用Figure/Table编号和中文说明。'
+              '每页 evidence_id 必须从下方原文片段中选择一个最能支撑核心论断的编号，pages 包含该片段对应的 PDF 页码。'
+              '不必抄写 evidence_quote，程序会自动附上对应原文；不能用范例或报告代替原文证据。'
+              'takeaway是一句带走的认识，无需每页复述摘要。cover保留原论文英文标题。'
+              +'\n风格：'+style+'\n全稿计划：'+json.dumps(plan,ensure_ascii=False)
+              +'\n只写本批：'+json.dumps(batch,ensure_ascii=False)+'\n图表目录：'+json.dumps(list(selected.values()),ensure_ascii=False)
+              +('\n附图顺序与目录一致。' if images else '\n未提供图片，只依据图注与正文，不声称看清图像细节。')
+              +'\n原文片段（编号 → PDF页码与原文）：'+json.dumps(evidence,ensure_ascii=False))
+            invoke(f'编写讲解与讲稿 {batch[0]["index"]}–{batch[-1]["index"]} / {len(plan)}',prompt,obj({'slides':array(slide_schema(list(evidence)),3)}),check_batch,images)
     slides=[draft['slides'][str(p['index'])] for p in plan]
     return {'slides':slides,'theme':theme,'style_key':style_key,'style_mode':config.get('ppt_style_mode','cached'),
             'paper_type':paper_types.effective(paper),'reading_outline':paper_types.outline(paper),
@@ -250,7 +250,7 @@ def export(paper,config,progress):
     figures={f['id']:f for f in paper.get('figures',[])}
     for slide in deck['slides']:
         if slide['figure_id']:
-            target=build/(slide['figure_id']+'.png');shutil.copyfile(documents.crop_figure(paper['id'],figures[slide['figure_id']]),target)
+            target=build/(slide['figure_id']+'.png');target.write_bytes(documents.figure_bytes(paper['id'],figures[slide['figure_id']]))
             slide['image_path']=str(target)
     output=directory/'exports'/f'report-{token}.pptx';output.parent.mkdir(exist_ok=True)
     payload=build/'slides.json';payload.write_text(json.dumps(dict(deck,output=str(output),build=str(build),paper_title=paper['title'],source_url=paper.get('source_url','')),ensure_ascii=False))
