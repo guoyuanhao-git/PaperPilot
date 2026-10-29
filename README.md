@@ -2,7 +2,7 @@
 
 本地个人科研工作台：论文检索与阅读、图表裁剪、问答、PDF / 讲解 PPT 导出、个性化知识图谱、热点发现和会议日程。先启动应用，再在页面配置模型；启动不需要 API Key。
 
-**当前主开发环境为 macOS。Windows 已验证原生桌面启停流程；完整产品验收尚未完成，详见 [Windows 验证报告](docs/WINDOWS_VALIDATION.md)。**
+**当前主开发环境为 macOS。Windows 原生启停、全量自动化回归及离线产品集成验收已通过，详见 [Windows 验证报告](docs/WINDOWS_VALIDATION.md)。真实模型连通性和部分人工交互尚未验证。**
 
 ## macOS 首次使用
 
