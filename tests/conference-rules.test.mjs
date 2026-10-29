@@ -1,0 +1,18 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import * as R from '../web/conferences/logic.mjs';import fs from 'node:fs';
+const seed=JSON.parse(fs.readFileSync(new URL('./fixtures/conference-seed.json',import.meta.url)));const now=Date.parse('2026-10-28T10:00:00Z');
+const e=(year,a,p)=>({year,announcement:'cfp',entryKey:a?'abstract':'paper',abstract:a,paper:p,paperAudience:a?'registered':'all'});
+const old=e(2027,'2026-11-10T23:59:00-12:00','2026-11-16T23:59:00-12:00');
+const next=e(2028,'2027-11-10T23:59:00-12:00','2027-11-16T23:59:00-12:00');
+const series={id:'cvpr',name:'CVPR',editions:[old,next]};
+test('nearest viable edition remains when next CFP appears',()=>assert.equal(R.chooseEdition(series,now).year,2027));
+test('switch to next CFP after first-submission closes',()=>assert.equal(R.chooseEdition(series,Date.parse('2026-11-12')).year,2028));
+test('meeting-only next edition never replaces old CFP',()=>assert.equal(R.chooseEdition({...series,editions:[old,{year:2028,announcement:'meeting'}]},Date.parse('2027-01-01')).year,2027));
+test('later CFP without dates is selected only after old entry closes',()=>{const s={...series,editions:[old,{year:2028,announcement:'cfp',entryKey:null}]};assert.equal(R.chooseEdition(s,now).year,2027);assert.equal(R.chooseEdition(s,Date.parse('2027-01-01')).year,2028)});
+test('mandatory abstract cutoff creates followup, excluded from default hero',()=>{const t=Date.parse('2026-11-12'),c={...old,id:'cvpr',name:'CVPR'};assert.equal(R.phase(c,t),'followup');assert.equal(R.hero([c],null,t),null);assert.equal(R.hero([c],'cvpr',t).id,'cvpr');assert.equal(R.nextNode(c,t).audience,'registered')});
+test('RSS invited full paper not a first-submission opportunity',()=>{const rss=R.selected(seed.series.find(x=>x.id==='rss'),Date.parse('2027-01-01'));assert.equal(R.nextNode(rss,Date.parse('2027-01-01')).audience,'invited');assert.equal(R.hero([rss],null,Date.parse('2027-01-01')),null)});
+test('closed sort by most recent first-submission deadline, not name',()=>{const t=Date.parse('2027-01-01');const list=[{...old,id:'a',name:'A',abstract:'2026-01-01T00:00:00Z',paper:'2026-01-02T00:00:00Z'},{...old,id:'z',name:'Z'}];assert.equal(list.sort((a,b)=>R.compare(a,b,null,t))[0].id,'z')});
+test('focus follows series to new edition',()=>{const c=R.selected(series,Date.parse('2027-01-01'));assert.equal(R.hero([c],'cvpr',Date.parse('2027-01-01')).year,2028)});
+test('date-only enters uncertain window then closes after all timezones',()=>{const c={entryKey:'paper',paperDay:'2027-03-01'};assert.equal(R.phase(c,Date.parse('2027-02-28T09:00Z')),'upcoming');assert.equal(R.phase(c,Date.parse('2027-03-01T12:00Z')),'uncertain');assert.equal(R.phase(c,Date.parse('2027-03-02T12:01Z')),'closed')});
+test('CoRL keeps verified 2026 over unverified placeholder 2027',()=>assert.equal(R.selected(seed.series.find(x=>x.id==='corl'),now).year,2026));
+test('all dates elapsed means no automatic hero, focus still works',()=>{const list=seed.series.map(s=>R.selected(s,Date.parse('2030-01-01')));assert.equal(R.hero(list,null,Date.parse('2030-01-01')),null);assert.equal(R.hero(list,'icra',Date.parse('2030-01-01')).id,'icra')});

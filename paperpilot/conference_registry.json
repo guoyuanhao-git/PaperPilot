@@ -1,0 +1,196 @@
+[
+  {
+    "id": "cvpr",
+    "name": "CVPR",
+    "group": "视觉与多模态",
+    "topics": "视觉基础模型 · 空间感知",
+    "rank": "A",
+    "start_year": 2027,
+    "sources": [
+      "https://cvpr.thecvf.com/",
+      "https://cvpr.thecvf.com/Conferences/2027/Dates"
+    ],
+    "domains": [
+      "cvpr.thecvf.com"
+    ]
+  },
+  {
+    "id": "icml",
+    "name": "ICML",
+    "group": "学习与决策",
+    "topics": "强化学习 · 世界模型",
+    "rank": "A",
+    "start_year": 2027,
+    "sources": [
+      "https://icml.cc/",
+      "https://icml.cc/Conferences/FutureMeetings"
+    ],
+    "domains": [
+      "icml.cc"
+    ]
+  },
+  {
+    "id": "neurips",
+    "name": "NeurIPS",
+    "group": "学习与决策",
+    "topics": "基础模型 · 决策与学习",
+    "rank": "A",
+    "start_year": 2027,
+    "sources": [
+      "https://neurips.cc/",
+      "https://neurips.cc/Conferences/FutureMeetings"
+    ],
+    "domains": [
+      "neurips.cc"
+    ]
+  },
+  {
+    "id": "iclr",
+    "name": "ICLR",
+    "group": "学习与决策",
+    "topics": "表示学习 · 生成模型",
+    "rank": "A",
+    "start_year": 2027,
+    "sources": [
+      "https://iclr.cc/",
+      "https://iclr.cc/Conferences/2027/CallForPapers"
+    ],
+    "domains": [
+      "iclr.cc"
+    ]
+  },
+  {
+    "id": "aaai",
+    "name": "AAAI",
+    "group": "学习与决策",
+    "topics": "智能体 · 推理与规划",
+    "rank": "A",
+    "start_year": 2027,
+    "sources": [
+      "https://aaai.org/",
+      "https://aaai.org/conference/aaai/aaai-27/"
+    ],
+    "domains": [
+      "aaai.org"
+    ]
+  },
+  {
+    "id": "iccv",
+    "name": "ICCV",
+    "group": "视觉与多模态",
+    "topics": "三维理解 · 视觉语言模型",
+    "rank": "A",
+    "start_year": 2027,
+    "sources": [
+      "https://iccv.thecvf.com/",
+      "https://iccv.thecvf.com/Conferences/2027/Dates"
+    ],
+    "domains": [
+      "iccv.thecvf.com"
+    ]
+  },
+  {
+    "id": "mm",
+    "name": "ACM MM",
+    "group": "视觉与多模态",
+    "topics": "多模态模型 · 具身媒体",
+    "rank": "A",
+    "start_year": 2027,
+    "sources": [
+      "https://www.acmmm.org/"
+    ],
+    "domains": [
+      "acmmm.org"
+    ]
+  },
+  {
+    "id": "rss",
+    "name": "RSS",
+    "group": "机器人",
+    "topics": "机器人学习 · 操作与控制",
+    "rank": "N",
+    "start_year": 2027,
+    "sources": [
+      "https://roboticsconference.org/",
+      "https://roboticsconference.org/information/cfp/"
+    ],
+    "domains": [
+      "roboticsconference.org"
+    ]
+  },
+  {
+    "id": "ijcai",
+    "name": "IJCAI",
+    "group": "学习与决策",
+    "topics": "推理与规划 · 智能体",
+    "rank": "B",
+    "start_year": 2027,
+    "sources": [
+      "https://2027.ijcai.org/",
+      "https://2027.ijcai.org/ijcai-2027-call-for-papers-main-track/"
+    ],
+    "domains": [
+      "ijcai.org"
+    ]
+  },
+  {
+    "id": "corl",
+    "name": "CoRL",
+    "group": "机器人",
+    "topics": "机器人学习 · 模仿学习",
+    "rank": "N",
+    "start_year": 2026,
+    "sources": [
+      "https://www.corl.org/",
+      "https://www.corl.org/contributions/instruction-for-authors"
+    ],
+    "domains": [
+      "corl.org"
+    ]
+  },
+  {
+    "id": "icra",
+    "name": "ICRA",
+    "group": "机器人",
+    "topics": "机器人操作 · 控制与导航",
+    "rank": "B",
+    "start_year": 2027,
+    "sources": [
+      "https://2027.ieee-icra.org/",
+      "https://2027.ieee-icra.org/contribute/call-for-icra-2027-papers-now-accepting-submissions/"
+    ],
+    "domains": [
+      "ieee-icra.org"
+    ]
+  },
+  {
+    "id": "iros",
+    "name": "IROS",
+    "group": "机器人",
+    "topics": "机器人系统 · 感知与导航",
+    "rank": "C",
+    "start_year": 2027,
+    "sources": [
+      "https://www.ieee-ras.org/",
+      "https://www.ieee-ras.org/events/category/important-dates/deadlines/list/"
+    ],
+    "domains": [
+      "ieee-ras.org"
+    ]
+  },
+  {
+    "id": "eccv",
+    "name": "ECCV",
+    "group": "视觉与多模态",
+    "topics": "具身视觉 · 三维场景理解",
+    "rank": "B",
+    "start_year": 2026,
+    "sources": [
+      "https://eccv.ecva.net/",
+      "https://eccv.ecva.net/Conferences/2026/CallForPapers"
+    ],
+    "domains": [
+      "eccv.ecva.net"
+    ]
+  }
+]

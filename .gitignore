@@ -1,0 +1,33 @@
+.DS_Store
+.env
+.venv/
+__pycache__/
+data/
+output/
+node_modules/
+tmp/
+
+# Local research workflow and user-provided material
+memory/
+论文重写参考/
+skills/paperpilot/
+
+# Credentials, machine configuration and generated artifacts
+.env.*
+!.env.example
+*.sqlite
+*.sqlite3
+*.sqlite-wal
+*.sqlite-shm
+*.log
+*.pem
+*.key
+.codex/
+.dsh/
+.openai/
+.pytest_cache/
+coverage/
+playwright-report/
+test-results/
+# Ad-hoc checks tied to the original development machine (not the portable tests/ suite)
+tools/verify_*.cjs

@@ -1,0 +1,375 @@
+{
+  "schemaVersion": 2,
+  "revision": 0,
+  "updatedAt": "2026-10-28T09:30:00Z",
+  "lastRunAt": null,
+  "automation": {
+    "enabled": false,
+    "schedule": "每周日 10:00",
+    "timezone": "Asia/Shanghai"
+  },
+  "series": [
+    {
+      "id": "cvpr",
+      "name": "CVPR",
+      "group": "视觉与多模态",
+      "topics": "视觉基础模型 · 空间感知",
+      "rank": "A",
+      "editions": [
+        {
+          "year": 2027,
+          "source": "https://cvpr.thecvf.com/Conferences/2027/Dates",
+          "abstract": "2026-11-10T23:59:00-12:00",
+          "paper": "2026-11-16T23:59:00-12:00",
+          "checked": "2026-10-28",
+          "state": "confirmed",
+          "track": "研究论文",
+          "note": "",
+          "zone": "Etc/GMT+12",
+          "zoneLabel": "AoE",
+          "announcement": "cfp",
+          "entryKey": "abstract",
+          "paperAudience": "registered",
+          "verification": "verified",
+          "evidence": "由上一版官方来源核查记录迁移；具体投稿机制见 note。"
+        }
+      ]
+    },
+    {
+      "id": "icml",
+      "name": "ICML",
+      "group": "学习与决策",
+      "topics": "强化学习 · 世界模型",
+      "rank": "A",
+      "editions": [
+        {
+          "year": 2027,
+          "source": "https://icml.cc/Conferences/FutureMeetings",
+          "abstract": null,
+          "paper": null,
+          "checked": "2026-10-28",
+          "state": "notlisted",
+          "track": "研究论文",
+          "note": "所查官方 Future Meetings 页仅列 2027 年南美举办，未列投稿日期。",
+          "zone": "Etc/GMT+12",
+          "zoneLabel": "AoE",
+          "announcement": "meeting",
+          "entryKey": null,
+          "paperAudience": "all",
+          "verification": "notlisted",
+          "evidence": "由上一版官方来源核查记录迁移；具体投稿机制见 note。"
+        }
+      ]
+    },
+    {
+      "id": "neurips",
+      "name": "NeurIPS",
+      "group": "学习与决策",
+      "topics": "基础模型 · 决策与学习",
+      "rank": "A",
+      "editions": [
+        {
+          "year": 2027,
+          "source": "https://neurips.cc/Conferences/FutureMeetings",
+          "abstract": null,
+          "paper": null,
+          "checked": "2026-10-28",
+          "state": "notlisted",
+          "track": "研究论文",
+          "note": "所查官方 Future Meetings 页仅列 2027 年欧洲举办，未列投稿日期。",
+          "zone": "Etc/GMT+12",
+          "zoneLabel": "AoE",
+          "announcement": "meeting",
+          "entryKey": null,
+          "paperAudience": "all",
+          "verification": "notlisted",
+          "evidence": "由上一版官方来源核查记录迁移；具体投稿机制见 note。"
+        }
+      ]
+    },
+    {
+      "id": "iclr",
+      "name": "ICLR",
+      "group": "学习与决策",
+      "topics": "表示学习 · 生成模型",
+      "rank": "A",
+      "editions": [
+        {
+          "year": 2027,
+          "source": "https://iclr.cc/Conferences/2027/CallForPapers",
+          "abstract": "2026-09-18T23:59:00-12:00",
+          "paper": "2026-09-25T23:59:00-12:00",
+          "checked": "2026-10-28",
+          "state": "confirmed",
+          "track": "研究论文",
+          "note": "依据 CCF 2026 年第七版，ICLR 为 A 类。",
+          "zone": "Etc/GMT+12",
+          "zoneLabel": "AoE",
+          "announcement": "cfp",
+          "entryKey": "abstract",
+          "paperAudience": "registered",
+          "verification": "verified",
+          "evidence": "由上一版官方来源核查记录迁移；具体投稿机制见 note。"
+        }
+      ]
+    },
+    {
+      "id": "aaai",
+      "name": "AAAI",
+      "group": "学习与决策",
+      "topics": "智能体 · 推理与规划",
+      "rank": "A",
+      "editions": [
+        {
+          "year": 2027,
+          "source": "https://aaai.org/conference/aaai/aaai-27/",
+          "abstract": "2026-07-21T23:59:00-12:00",
+          "paper": "2026-07-28T23:59:00-12:00",
+          "checked": "2026-10-28",
+          "state": "confirmed",
+          "track": "研究论文",
+          "note": "",
+          "zone": "Etc/GMT+12",
+          "zoneLabel": "AoE",
+          "announcement": "cfp",
+          "entryKey": "abstract",
+          "paperAudience": "registered",
+          "verification": "verified",
+          "evidence": "由上一版官方来源核查记录迁移；具体投稿机制见 note。"
+        }
+      ]
+    },
+    {
+      "id": "iccv",
+      "name": "ICCV",
+      "group": "视觉与多模态",
+      "topics": "三维理解 · 视觉语言模型",
+      "rank": "A",
+      "editions": [
+        {
+          "year": 2027,
+          "source": "https://iccv.thecvf.com/Conferences/2027/Dates",
+          "abstract": null,
+          "paper": null,
+          "checked": "2026-10-28",
+          "state": "notlisted",
+          "track": "研究论文",
+          "note": "所查 2027 Dates 页只有 10 月 3–7 日会期，未列投稿日期。",
+          "zone": "Etc/GMT+12",
+          "zoneLabel": "AoE",
+          "announcement": "meeting",
+          "entryKey": null,
+          "paperAudience": "all",
+          "verification": "notlisted",
+          "evidence": "由上一版官方来源核查记录迁移；具体投稿机制见 note。"
+        }
+      ]
+    },
+    {
+      "id": "mm",
+      "name": "ACM MM",
+      "group": "视觉与多模态",
+      "topics": "多模态模型 · 具身媒体",
+      "rank": "A",
+      "editions": [
+        {
+          "year": 2027,
+          "source": "https://www.acmmm.org/",
+          "abstract": null,
+          "paper": null,
+          "checked": "2026-10-28",
+          "state": "notlisted",
+          "track": "研究论文",
+          "note": "官网仅宣布 2027 年香港举办，未列投稿日期。",
+          "zone": "Etc/GMT+12",
+          "zoneLabel": "AoE",
+          "announcement": "meeting",
+          "entryKey": null,
+          "paperAudience": "all",
+          "verification": "notlisted",
+          "evidence": "由上一版官方来源核查记录迁移；具体投稿机制见 note。"
+        }
+      ]
+    },
+    {
+      "id": "rss",
+      "name": "RSS",
+      "group": "机器人",
+      "topics": "机器人学习 · 操作与控制",
+      "rank": "N",
+      "editions": [
+        {
+          "year": 2027,
+          "source": "https://roboticsconference.org/information/cfp/",
+          "abstract": "2026-12-04T23:59:00-12:00",
+          "paper": "2027-04-16T23:59:00-12:00",
+          "checked": "2026-10-28",
+          "state": "confirmed",
+          "track": "研究论文",
+          "note": "阶段一提交 6 页扩展摘要；阶段二最终全文仅面向获邀作者，并非普通首次全文投稿。",
+          "zone": "Etc/GMT+12",
+          "zoneLabel": "AoE",
+          "abstractLabel": "扩展摘要",
+          "paperLabel": "受邀最终全文",
+          "announcement": "cfp",
+          "entryKey": "abstract",
+          "paperAudience": "invited",
+          "verification": "verified",
+          "evidence": "由上一版官方来源核查记录迁移；具体投稿机制见 note。"
+        }
+      ]
+    },
+    {
+      "id": "ijcai",
+      "name": "IJCAI",
+      "group": "学习与决策",
+      "topics": "推理与规划 · 智能体",
+      "rank": "B",
+      "editions": [
+        {
+          "year": 2027,
+          "source": "https://2027.ijcai.org/ijcai-2027-call-for-papers-main-track/",
+          "abstract": "2027-01-04T23:59:00-12:00",
+          "paper": "2027-01-11T23:59:00-12:00",
+          "checked": "2026-10-28",
+          "state": "confirmed",
+          "track": "研究论文",
+          "note": "展示主轨投稿日期。分级依据 CCF 2026 年第七版目录。",
+          "zone": "Etc/GMT+12",
+          "zoneLabel": "AoE",
+          "announcement": "cfp",
+          "entryKey": "abstract",
+          "paperAudience": "registered",
+          "verification": "verified",
+          "evidence": "由上一版官方来源核查记录迁移；具体投稿机制见 note。"
+        }
+      ]
+    },
+    {
+      "id": "corl",
+      "name": "CoRL",
+      "group": "机器人",
+      "topics": "机器人学习 · 模仿学习",
+      "rank": "N",
+      "editions": [
+        {
+          "year": 2026,
+          "abstract": null,
+          "paper": null,
+          "paperDay": "2026-05-28",
+          "entryKey": null,
+          "paperAudience": "all",
+          "announcement": "cfp",
+          "verification": "verified",
+          "source": "https://www.corl.org/contributions/instruction-for-authors",
+          "checked": "2026-10-28",
+          "note": "官网作者指南列出 5 月 28 日 EOD 的全文截止，摘要截止时刻未在此页核实。当前已过全文截止；2027 届尚未核实，不按上一届推算。",
+          "evidence": "作者指南 Key Dates 明确列出 Thursday (5/28) EOD，页面为 CoRL 2026。",
+          "zone": "Etc/GMT+12",
+          "zoneLabel": "AoE",
+          "track": "研究论文",
+          "abstractText": "摘要日期尚未核实"
+        },
+        {
+          "year": 2027,
+          "checked": "2026-10-28",
+          "abstract": null,
+          "paper": null,
+          "track": "研究论文",
+          "zone": "Etc/GMT+12",
+          "zoneLabel": "AoE",
+          "source": "https://www.corl.org/",
+          "state": "notlisted",
+          "note": "所查官网仍展示 CoRL 2026，未见 2027 届投稿日期；不沿用上一届日期。",
+          "announcement": "unverified",
+          "entryKey": null,
+          "paperAudience": "all",
+          "verification": "notlisted",
+          "evidence": "由上一版官方来源核查记录迁移；具体投稿机制见 note。"
+        }
+      ]
+    },
+    {
+      "id": "icra",
+      "name": "ICRA",
+      "group": "机器人",
+      "topics": "机器人操作 · 控制与导航",
+      "rank": "B",
+      "editions": [
+        {
+          "year": 2027,
+          "checked": "2026-10-28",
+          "abstract": null,
+          "paper": "2026-09-16T23:59:00-08:00",
+          "track": "研究论文",
+          "zone": "Etc/GMT+8",
+          "zoneLabel": "PST",
+          "source": "https://2027.ieee-icra.org/contribute/call-for-icra-2027-papers-now-accepting-submissions/",
+          "state": "confirmed",
+          "abstractText": "官网未单独列出",
+          "note": "官方全文截止已延长至 2026-09-16 23:59 PST。按官网标注的 PST（UTC−8）转换；摘要未单独列出。",
+          "announcement": "cfp",
+          "entryKey": "paper",
+          "paperAudience": "all",
+          "verification": "verified",
+          "evidence": "由上一版官方来源核查记录迁移；具体投稿机制见 note。"
+        }
+      ]
+    },
+    {
+      "id": "iros",
+      "name": "IROS",
+      "group": "机器人",
+      "topics": "机器人系统 · 感知与导航",
+      "rank": "C",
+      "editions": [
+        {
+          "year": 2027,
+          "checked": "2026-10-28",
+          "abstract": null,
+          "paper": null,
+          "track": "研究论文",
+          "zone": "Etc/GMT+12",
+          "zoneLabel": "AoE",
+          "source": "https://www.ieee-ras.org/events/category/important-dates/deadlines/list/",
+          "state": "dateonly",
+          "paperDay": "2027-03-01",
+          "abstractText": "官网未单独列出",
+          "note": "IEEE RAS 官方截止日历列出 2027-03-01；具体时刻与时区尚未核实，因此保留官方日期，不做时区转换或精确倒计时。",
+          "announcement": "cfp",
+          "entryKey": "paper",
+          "paperAudience": "all",
+          "verification": "verified",
+          "evidence": "由上一版官方来源核查记录迁移；具体投稿机制见 note。"
+        }
+      ]
+    },
+    {
+      "id": "eccv",
+      "name": "ECCV",
+      "group": "视觉与多模态",
+      "topics": "具身视觉 · 三维场景理解",
+      "rank": "B",
+      "editions": [
+        {
+          "year": 2026,
+          "source": "https://eccv.ecva.net/Conferences/2026/CallForPapers",
+          "abstract": "2026-02-26T23:00:00+01:00",
+          "paper": "2026-03-05T23:00:00+01:00",
+          "checked": "2026-10-28",
+          "state": "confirmed",
+          "track": "研究论文",
+          "note": "论文注册截止为 2 月 26 日 23:00 CET，全文截止为 3 月 5 日 23:00 CET。注册为首次投稿必需步骤；OpenReview 个人资料和作者登记延期不改变论文注册截止。已核查 ECCV 官网与 ECVA 页面，尚未核实到下一届官方投稿日期。",
+          "zone": "Europe/Stockholm",
+          "zoneLabel": "CET",
+          "announcement": "cfp",
+          "entryKey": "abstract",
+          "paperAudience": "registered",
+          "verification": "verified",
+          "evidence": "ECCV 2026 官方 CFP 列出论文注册 2026-02-26 23:00 CET、全文 2026-03-05 23:00 CET，并要求论文在注册截止前登记。Dates 页交叉确认对应 UTC 22:00；主页 3 月 2 日更正说明确认注册截止未延期。"
+        }
+      ]
+    }
+  ],
+  "updates": []
+}
