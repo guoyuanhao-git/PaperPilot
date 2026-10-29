@@ -1,4 +1,7 @@
-# Windows 原生启动验证报告
+# Windows 产品验收报告
+
+最新真实浏览器与导出检查已通过。本文末尾的“产品验收最终结果”是当前结论；前文保留诊断过程与历史失败，不能将历史失败当作当前状态。
+
 
 日期：2026-10-29。开发分支：`codex/windows-compat`。初始基线：`origin/main` 的 `6012b640a2f9db5c10c3f98d18e2fc3ce8d69448`。
 
@@ -69,3 +72,55 @@ Windows 原生 CMD 启动、后台运行、重复启动复用、停止和重启�
 - Windows os.kill(SIGTERM) 是强制终止；当前沿用既有停止方式和忙碌保护，不能宣称已实现优雅关闭或消除所有进程身份检查竞态。
 
 下一轮优先完整追踪 SQLite 连接关闭和全量测试阻塞，再完成导出及模型子进程生命周期验收。此报告证明桌面入口层的原生启停流程通过，不能替代完整 Windows 产品兼容性验收。
+
+## 完整产品验收进展（2026-10-29，进行中）
+
+- 本轮修复前完整 Python 回归：399 项，312 个错误，118.521 秒。
+- 已修复 store.connect 生命周期：保留事务提交/回滚，并在 finally 关闭连接。新增事务提交、异常回滚、关闭后不可查询及数据库文件可删除测试，通过。
+- 修复后完整 Python 回归：400 项，399 项通过、1 项错误，113.172 秒。唯一错误为 presentations.clean_master_declarations 在原 ZipFile 仍打开时替换原 PPTX，Windows 返回 WinError 5。尚未修复。
+- Node 回归：12 项全部通过。
+- 现有 tests/verify_exports.py：真实 PDF 导出检查通过，包含中文文本、公式与图表检查。
+- 新增 tests/verify_windows_product.py：真实 Chromium 首次创建合成账户、上传两页合成 PDF，以及 library、knowledge、discover、conferences、profile、settings 页面导航通过；没有 pageerror 或本地 HTTP 4xx/5xx。仅证明这些页面的导航与资产加载，不等于各页面所有操作均经浏览器验证。
+- 新脚本实际 PPTX 导出失败：同样在 clean_master_declarations 替换尚未关闭的 ZIP 文件时产生 WinError 5。模型生成以合成幻灯片数据替代，实际 Node/PptxGenJS/Chromium 渲染未模拟。未绕过失败。
+- 新脚本因 PPTX 失败尚未执行后续 PDF 检查；服务在 finally 中停止。临时数据未提交，无真实模型调用。
+- 先前报告中的 SQLite 与全量回归状态应以本节最新结果为准。完整产品验收仍在推进，PPTX 文件占用是当前已确认阻塞。
+
+## 产品验收最终结果（2026-10-29）
+
+本轮批准的离线产品验收检查全部通过。使用临时数据、合成论文和模拟模型，不调用真实付费模型。真实在线服务及真实模型响应质量不在本轮结果中冒充验证。
+
+### 最终命令与结果
+
+- `python -X utf8 -m unittest discover -s tests`：400 项全部通过，202.760 秒。覆盖当前仓库全部 Python 测试，包含其调用的前端逻辑检查。
+- `node --test tests/reader-split.test.cjs tests/conference-rules.test.mjs`：12 项全部通过。
+- `python -X utf8 -m unittest discover -s tests -p test_presentations.py -v`：11 项全部通过。
+- `python -X utf8 tests/verify_windows_product.py`：真实 Chromium 账户创建、合成 PDF 上传、六个页面导航、本地资产无 HTTP 错误、无页面脚本异常；真实三页 PPTX（含公式与图表）生成，ZIP 完整、XML/关系文件可解析、媒体和讲稿备注存在；真实 PDF 导出通过。
+- `python -X utf8 tests/verify_exports.py`：中文文字、公式、图表及报告内容的 PDF 导出检查通过。
+
+### 按功能的验收证据
+
+| 功能 | 通过的验证层级 |
+| --- | --- |
+| Windows 启动、重复启动、停止、重启、中文空格路径 | 真实 CMD 集成回归；默认虚拟环境及端口释放实测 |
+| 账户创建、切换、隔离、迁移、持久化 | 全量账户回归；首次创建和上传另经真实 Chromium 检查 |
+| 上传、PDF 解析、页面、图表裁剪与保存、删除/恢复原文 | Core、reader、caption、paper_storage 等回归；上传另经真实 Chromium 检查 |
+| 阅读模式、报告、问答、引用、断点恢复 | 模拟模型业务回归；真实 PDF 导出检查 |
+| Markdown/LaTeX、阅读器状态、页面切换和竞态 | 前端逻辑回归；浏览器页面加载检查；公式真实导出 |
+| 三任务并行、排队、取消、晚到响应保护 | reader_pages、analysis_cancel、chat_cancel 等模拟任务回归 |
+| 喜欢/收藏/阅读状态和阅读统计 | library 回归 |
+| 知识图谱、主线、增量缓存、二维/三维视图逻辑 | knowledge、knowledge_sources、schedule、graph_view/navigation 回归；知识库页面真实浏览器导航检查 |
+| 会议、检索、热点、来源、缓存与网络失败处理 | conferences、discovery、title_search、news、daily、hf 等合成响应回归；会议/检索页面真实浏览器导航 |
+| 用户资料、记忆、参考风格与 PPT 范例 | profile、memory、style、presentation_samples 相关回归 |
+| 模型设置、账户凭据、配置隔离及公共规则 | model_setup、credentials、providers 适配器模拟回归 |
+| PDF / PPTX | 实际 Node、Chromium、PptxGenJS 导出；PDF 文本内容检查和 PPTX 包结构检查 |
+
+### 本轮修复说明
+
+- `paperpilot/store.py`：之前 SQLite 连接退出事务后仍保持打开；现在 connect 是上下文管理器，事务成功提交、异常回滚，finally 关闭连接。移除直接返回未托管连接的行为，所有已检查调用仍使用 with。数据库格式和业务 HTTP 接口未变。
+- `tests/test_store_connection.py`：增加提交、回滚、关闭状态和文件删除验证。SQLite 修复后，先前大量 Windows 清理/迁移失败消失。
+- `paperpilot/presentations.py`：在 ZIP 清理完成后、原子替换前关闭原 PPTX 读取句柄，避免 Windows 拒绝覆盖仍被打开的目标；没有删除幻灯片或绕过校验。
+- `tests/verify_windows_product.py`：新增可重复的真实浏览器与真实导出集成检查，仅模拟幻灯片模型生成内容；临时服务在 finally 停止。
+
+### 精确边界
+
+上述通过结果表示现有自动化功能覆盖与新增离线集成检查通过，不保证任意输入、任意机器都无缺陷。真实模型登录/额度/在线生成和当前外部网站可达性没有实测；图谱二维/三维完整鼠标操作尚未逐项人工检查；未在 Microsoft PowerPoint 应用中打开导出的 PPTX（已验证包完整、XML、媒体与备注）；未验证 macOS、Python 3.12 或资源管理器鼠标双击。截图仅使用临时文件，没有把测试账户数据和论文提交到仓库。历史未测项中已被本节覆盖的部分以本节为准。
