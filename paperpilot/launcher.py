@@ -103,10 +103,9 @@ def main():
     parser.add_argument('--port', type=int, default=PORT)
     args = parser.parse_args()
     # Serialize double clicks without locking the long-running server itself.
-    import fcntl
+    from .file_lock import file_lock
     store.DATA.mkdir(parents=True, exist_ok=True, mode=0o700)
-    with (store.DATA / 'desktop-launch.lock').open('a') as handle:
-        fcntl.flock(handle, fcntl.LOCK_EX)
+    with file_lock(store.DATA / 'desktop-launch.lock'):
         try:
             stop() if args.stop else start(args.port)
         except (OSError, ValueError) as error:

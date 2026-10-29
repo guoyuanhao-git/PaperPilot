@@ -8,7 +8,7 @@ from zoneinfo import ZoneInfo
 from pathlib import Path
 from . import store
 
-REGISTRY = json.loads(Path(__file__).with_name('conference_registry.json').read_text())
+REGISTRY = json.loads(Path(__file__).with_name('conference_registry.json').read_text(encoding='utf-8'))
 TZ = timezone(timedelta(hours=8))
 MAX_BYTES = 2 * 1024 * 1024
 
