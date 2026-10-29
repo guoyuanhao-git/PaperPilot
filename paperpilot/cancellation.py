@@ -1,5 +1,6 @@
 """Cooperative cancellation for paper Q&A and reading report tasks."""
 import contextvars
+import os
 from contextlib import contextmanager
 import queue
 import subprocess
@@ -92,23 +93,31 @@ def run_process(command, *, env, input, timeout):
     control = CURRENT.get()
     if not control:
         return subprocess.run(command, env=env, input=input, text=True, capture_output=True, timeout=timeout)
-    control.check()
+    if control:
+        control.check()
     process = subprocess.Popen(command, env=env, text=True, stdin=subprocess.PIPE,
-                               stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                               stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='utf-8' if os.name == 'nt' else None)
+    close_job = None
     deadline = time.monotonic() + timeout
     first = True
     try:
+        from .codex_runtime import process_job
+        close_job = process_job(process)
         while True:
-            control.check()
+            if control:
+                control.check()
             if time.monotonic() >= deadline:
                 raise subprocess.TimeoutExpired(command, timeout)
             try:
                 stdout, stderr = process.communicate(input=input if first else None, timeout=.1)
-                control.check()
+                if control:
+                    control.check()
                 return subprocess.CompletedProcess(command, process.returncode, stdout, stderr)
             except subprocess.TimeoutExpired:
                 first = False
     finally:
+        if close_job:
+            close_job()
         if process.poll() is None:
             process.terminate()
             try:

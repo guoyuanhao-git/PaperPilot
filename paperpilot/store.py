@@ -80,10 +80,15 @@ def init():
             save('job', j)
 
 
+@contextmanager
 def connect():
     db = sqlite3.connect(data_dir() / 'paperpilot.sqlite', timeout=30)
-    db.execute('PRAGMA journal_mode=WAL')
-    return db
+    try:
+        db.execute('PRAGMA journal_mode=WAL')
+        with db:
+            yield db
+    finally:
+        db.close()
 
 
 def save(kind, value):

@@ -231,6 +231,7 @@ def clean_master_declarations(path):
                 for entry in archive.infolist():
                     output.writestr(entry,ET.tostring(types,encoding='utf-8',xml_declaration=True)
                                     if entry.filename=='[Content_Types].xml' else archive.read(entry.filename))
+            archive.close()
             temporary.replace(path)
         finally:temporary.unlink(missing_ok=True)
 

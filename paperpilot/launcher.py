@@ -52,17 +52,19 @@ def start(port=PORT):
     if log.exists() and log.stat().st_size > 2_000_000:
         log.replace(runtime / 'service.previous.log')
     nonce = secrets.token_hex(24)
-    with log.open('a') as output:
+    with log.open('a', encoding='utf-8') as output:
         log.chmod(0o600)
+        process_options = ({'creationflags': subprocess.CREATE_NO_WINDOW} if os.name == 'nt'
+                           else {'start_new_session': True})
         process = subprocess.Popen([sys.executable, '-m', 'paperpilot.server', '--port', str(port)],
                                    cwd=store.ROOT, stdin=subprocess.DEVNULL, stdout=output, stderr=output,
-                                   start_new_session=True, env={**os.environ, 'PAPERPILOT_DESKTOP_NONCE': nonce})
+                                   **process_options, env={**os.environ, 'PYTHONUTF8': '1', 'PAPERPILOT_DESKTOP_NONCE': nonce})
     deadline = time.monotonic() + 90
     while time.monotonic() < deadline:
         current = health(port)
         if current and current.get('instance') == identity() and current.get('desktop_nonce') == nonce:
             state = runtime / 'process.json'
-            state.write_text(json.dumps({'pid':process.pid, 'port':port, 'nonce':nonce}))
+            state.write_text(json.dumps({'pid':current['pid'], 'port':port, 'nonce':nonce}), encoding='utf-8')
             state.chmod(0o600)
             show(port)
             return
@@ -77,7 +79,7 @@ def stop():
     path = store.DATA / 'desktop/process.json'
     if not path.exists():
         raise ValueError('没有通过图标启动的服务记录；从终端启动的服务请在原终端停止。')
-    saved = json.loads(path.read_text())
+    saved = json.loads(path.read_text(encoding='utf-8'))
     current = health(saved['port'])
     if not current:
         path.unlink(missing_ok=True)
@@ -103,10 +105,9 @@ def main():
     parser.add_argument('--port', type=int, default=PORT)
     args = parser.parse_args()
     # Serialize double clicks without locking the long-running server itself.
-    import fcntl
+    from .file_lock import file_lock
     store.DATA.mkdir(parents=True, exist_ok=True, mode=0o700)
-    with (store.DATA / 'desktop-launch.lock').open('a') as handle:
-        fcntl.flock(handle, fcntl.LOCK_EX)
+    with file_lock(store.DATA / 'desktop-launch.lock'):
         try:
             stop() if args.stop else start(args.port)
         except (OSError, ValueError) as error:

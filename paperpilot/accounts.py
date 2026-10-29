@@ -170,14 +170,12 @@ def reference_dir():
 @contextmanager
 def instance_lock():
     """Only one service may own a data root, including its background jobs."""
-    import fcntl
+    from .file_lock import file_lock
     store.DATA.mkdir(parents=True, exist_ok=True)
-    with (store.DATA / 'accounts-instance.lock').open('a') as handle:
+    from contextlib import ExitStack
+    with ExitStack() as stack:
         try:
-            fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            stack.enter_context(file_lock(store.DATA / 'accounts-instance.lock', blocking=False))
         except BlockingIOError:
             raise SystemExit('此数据目录的 PaperPilot 已在运行，请使用已有页面或设置独立 PAPERPILOT_DATA。') from None
-        try:
-            yield
-        finally:
-            fcntl.flock(handle, fcntl.LOCK_UN)
+        yield

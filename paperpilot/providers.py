@@ -1,3 +1,4 @@
+from . import codex_runtime
 import base64
 import json
 import os
@@ -188,7 +189,7 @@ def generate(config, system, messages, images=(), structured=False, schema=None)
         prompt += '\n'.join(m['role'] + ': ' + m['content'] for m in messages)
         with tempfile.TemporaryDirectory(prefix='paperpilot-codex-') as directory:
             result_path = Path(directory) / 'answer.txt'
-            cmd = [binary, 'exec', '--skip-git-repo-check', '--ephemeral', '--sandbox', 'read-only',
+            cmd = [*codex_runtime.command(binary), 'exec', '--skip-git-repo-check', '--ephemeral', '--sandbox', 'read-only',
                    '--ignore-user-config', '-c', 'approval_policy="never"', '--color', 'never',
                    '-C', directory, '--output-last-message', str(result_path),
                    '-c', 'model_reasoning_effort=' + json.dumps(effort)]

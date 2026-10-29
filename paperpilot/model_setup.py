@@ -1,4 +1,5 @@
 """One-time local setup for coding harnesses; no access to their private key stores."""
+from . import codex_runtime
 import argparse
 import getpass
 import json
@@ -31,7 +32,13 @@ def public(port):
     for provider in ('codex', 'deepseek'):
         args = (['python', '-m', 'paperpilot.model_setup'] if os.name == 'nt' else ['./run.sh', '--connect-model'])
         args += [provider, '--account', account, '--port', str(port)]
-        commands[provider] = subprocess.list2cmdline(args) if os.name == 'nt' else shlex.join(args)
+        if os.name == 'nt':
+            python = str(Path(sys.executable).resolve()).replace("'", "''")
+            location = project_location(store.ROOT.resolve(), True)['enter_project_command']
+            commands[provider] = (location + "; & '" + python + "' -X utf8 -m paperpilot.model_setup "
+                                  + provider + ' --account ' + account + ' --port ' + str(port))
+        else:
+            commands[provider] = shlex.join(args)
     return {**project_location(store.ROOT.resolve(), os.name == 'nt'),
             'account_id': account, 'local_url': f'http://127.0.0.1:{port}/',
             'commands': commands, 'codex_available': bool(shutil.which('codex')),
@@ -96,7 +103,7 @@ def connect(client, provider, from_env=False):
             if client.setup['codex_isolated']:
                 options += ['-c', 'cli_auth_credentials_store="file"']
             # The official CLI owns browser authorization and refresh; no token copying.
-            if subprocess.call([binary, *options, 'login'], env=env) != 0:
+            if subprocess.call([*codex_runtime.command(binary), *options, 'login'], env=env) != 0:
                 raise ValueError('Codex 登录未完成；原配置保留。')
             if not client.call('/api/codex-status')['ready']:
                 raise ValueError('尚未确认 Codex 订阅登录，请在设置页检查。')

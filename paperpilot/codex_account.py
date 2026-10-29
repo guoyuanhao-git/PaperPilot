@@ -1,4 +1,5 @@
 """Use Codex's own login flow; never copy another workspace's credentials."""
+from . import codex_runtime
 import os
 import shlex
 import shutil
@@ -39,7 +40,7 @@ def status():
     if not binary:
         return {'ready': False, 'message': '未找到 Codex CLI，请先安装。'}
     try:
-        result = subprocess.run([binary, *auth_options(), 'login', 'status'], env=environment(),
+        result = subprocess.run([*codex_runtime.command(binary), *auth_options(), 'login', 'status'], env=environment(),
                                 capture_output=True, text=True, timeout=15)
         logged = result.returncode == 0 and 'chatgpt' in (result.stdout + result.stderr).lower()
         return {'ready': logged, 'message': '已通过 ChatGPT 订阅登录；模型权限以测试连接为准。' if logged else '尚未通过 ChatGPT 订阅登录，请执行下方配置命令。'}
@@ -59,4 +60,4 @@ def login(name):
     if not binary:
         raise SystemExit('未找到 Codex CLI，请先安装。')
     with store.scope(accounts.binding(user)):
-        raise SystemExit(subprocess.call([binary, *auth_options(), 'login'], env=environment()))
+        raise SystemExit(subprocess.call([*codex_runtime.command(binary), *auth_options(), 'login'], env=environment()))

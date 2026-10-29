@@ -520,7 +520,7 @@ def serve(port):
                 pass
             time.sleep(45)
     threading.Thread(target=scheduler, daemon=True).start()
-    print(f'PaperPilot 已启动：http://127.0.0.1:{port}', flush=True)
+    print(f'PaperPilot running: http://127.0.0.1:{port}', flush=True)
     try:
         server.serve_forever()
     except KeyboardInterrupt:

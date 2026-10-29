@@ -35,7 +35,7 @@ class Checkpoints:
     def advance(self):
         if self.pending:
             path, result = self.pending
-            temporary = path.with_suffix('.' + uuid.uuid4().hex + '.tmp')
+            temporary = path.with_name(uuid.uuid4().hex + '.tmp')
             temporary.write_text(json.dumps(result, ensure_ascii=False))
             temporary.replace(path)
             self.pending = None

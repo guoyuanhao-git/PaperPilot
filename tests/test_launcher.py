@@ -26,3 +26,16 @@ class Launcher(unittest.TestCase):
             with patch.object(launcher,'health',side_effect=[valid,None]),patch.object(launcher.os,'kill') as kill:
                 launcher.stop();kill.assert_called_once_with(1234,launcher.signal.SIGTERM)
             self.assertFalse(path.exists())
+
+    def test_records_health_pid_instead_of_wrapper_pid(self):
+        from unittest.mock import MagicMock
+        with tempfile.TemporaryDirectory() as tmp, patch.object(store, 'DATA', Path(tmp)):
+            process = MagicMock(pid=111)
+            def healthy(port):
+                nonce = spawn.call_args.kwargs['env']['PAPERPILOT_DESKTOP_NONCE']
+                return {'instance': launcher.identity(), 'desktop_nonce': nonce, 'pid': 222}
+            with patch.object(launcher, 'health', side_effect=[None, None]), patch.object(launcher, 'show'), patch.object(launcher.subprocess, 'Popen', return_value=process) as spawn:
+                launcher.health.side_effect = lambda port: healthy(port) if spawn.called else None
+                launcher.start(8766)
+            state = json.loads((Path(tmp) / 'desktop/process.json').read_text(encoding='utf-8'))
+            self.assertEqual(state['pid'], 222)
