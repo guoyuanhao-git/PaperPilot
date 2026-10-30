@@ -251,3 +251,47 @@ Windows 原生 CMD 启动、后台运行、重复启动复用、停止和重启�
 - Chrome 产品集成通过：合成 PDF 上传、六页导航、数学范文入口、实际 PDF 导出；批量操作切换清空选择、预览取消、批量报告删除及原文释放/恢复入口均通过，无页面脚本错误。
 - PPT 相关测试随功能删除；测试数量下降不代表绕过仍保留功能的验收。
 - 前端语法与 diff 格式检查通过。Windows 本轮尚未实测，需按 WINDOWS_SYNC_2026-10-29.md 继续复核；无需默认重复此前真实模型验收。
+
+## Windows 合并后原生兼容复核（2026-10-30）
+
+按 docs/WINDOWS_SYNC_2026-10-29.md 执行。基线为获取后的 origin/main `9e9a71e18617dcf326f90758e4297cb8ffaa4ef0`，新分支 `codex/windows-postmerge-check`。开始时旧 codex/windows-compat 工作区干净，无未提交改动；旧分支及原 Python 3.11 .venv 保留。没有 reset、强推或修改产品设计。PPT 已删除，本轮没有恢复或执行 PPT 测试。
+
+### 环境与依赖
+
+- Windows 10.0.26200，Python 3.12.7，SQLite 3.45.3，Node 22.14.0，Playwright Chromium 151.0.7922.34。
+- 使用本机已安装 Python 3.12，在忽略目录 tmp/windows-review-312 创建独立 venv，未覆盖日常 .venv。执行该环境 `Scripts/python.exe -m pip install -r requirements.txt` 成功；所有本轮 Python 命令使用该3.12环境。
+- `npm.cmd ci` 成功，安装42个包、审计43个包，0漏洞；`npm.cmd ls pptxgenjs --depth=0` 为空，未借用旧PPT依赖残留。
+- 没有运行任何 --real 脚本，没有读取模型密钥、日常论文或其他应用凭据；真实模型调用0次。浏览器产品脚本将 providers.generate 替换为报错断言，防止意外付费调用。
+
+### 命令与结果
+
+以下 python 指 tmp/windows-review-312/Scripts/python.exe：
+
+| 命令 | Windows实际结果 |
+| --- | --- |
+| `python -X utf8 -m unittest discover -s tests -p test_paper_storage.py -v` | 20项全部通过，16.492秒 |
+| `python -X utf8 -m unittest discover -s tests -p test_image_cache.py -v` | 8项全部通过，2.119秒 |
+| `python -X utf8 -m unittest discover -s tests` | 409项全部通过，226.252秒，无跳过/失败；含Windows CMD启停、Job Object及打包回归 |
+| `node --test tests/reader-split.test.cjs tests/conference-rules.test.mjs` | 12项全部通过 |
+| `python -X utf8 tests/verify_windows_product.py` | 真实Chromium上传、阅读及数学范文入口、六页导航、批量管理与实际PDF导出通过；PPT控件不存在，无页面脚本/本地HTTP错误 |
+| `python -X utf8 tests/verify_exports.py --preview` | 中文、行内/块公式、图表及内容断言通过；两页PNG已逐页目视检查，未见裁切、重叠或缺字 |
+
+### 本轮重点证据
+
+- **批量释放PDF**：浏览器验证操作切换清空选择、预览取消、逐篇确认和执行后原文释放标记；专项验证成功/失败混合返回、重复ID去重、非法/超100篇拒绝、账户隔离。
+- **批量删除报告**：浏览器验证预览取消不删除及确认后报告移除；专项验证确认期间报告版本变化时跳过，原文、摘要、个人思考、阅读状态、对话及已有导出保留，报告专用图清理与不可再生图片保留。
+- **位置和空列表**：在内存扩展现有 STORAGE_BROWSER 检查，批量操作完成后当前分类与滚动位置保持；无PDF、无报告时无可选条目，点击空列表全选后保持未选且预览禁用。最终输出 EMPTY_LISTS_CATEGORY_AND_SCROLL_PRESERVED_OK。
+- **释放后图片与PDF导出**：额外使用现有verify_exports合成夹具，先导出PDF，再释放原文并将临时缓存限额设为0；报告图像字节仍可读取，实际Node/Chromium再次PDF导出成功，已有导出文件字节不变。随后手动恢复，原文精确字节与报告保留。输出 RELEASED_PDF_RETAINED_IMAGES_AND_REAL_REEXPORT_OK / MANUAL_RESTORE_EXACT_BYTES_AND_REPORT_OK。
+- **自动/手动恢复**：专项覆盖匹配原文恢复、版本不符拒绝、下载失败回滚、手动恢复优先于晚到自动下载及其他活动任务保护。网络下载均使用模拟字节，不访问真实论文。
+- **高清缓存**：实际PDF裁图大图宽度至少1600且不超过2400、超过模型图3倍，像素/边长上限和裁剪坐标正确。默认限额为512 MiB；用0或100字节临时限额及合成缓存验证LRU、跨论文共享、清理后重建，未填满磁盘。
+- **缓存安全**：原文、已导出文件、不可再生报告图及手动固定图片不被清理；释放/恢复中标记保护、不同账户隔离、模型图片快照不随阅读缩放增大、异常/取消后快照清理及启动恢复均通过。
+- **Windows启停**：全量回归包含实际CMD入口执行、中文空格路径、重复启动复用、停止重启/持久化及端口冲突；忙碌/错误实例/nonce/PID停止保护由模拟断言覆盖，不创建付费生成任务。
+- **PPT移除与打包**：浏览器断言已删除的PPT按钮/范例对话框不存在；Node实际安装无pptxgenjs；最新源码打包白名单回归包含Windows三个CMD入口。历史PPT文件未操作。
+
+### 调查过程与边界
+
+扩展浏览器检查首次对空列表使用 Playwright.check()，错误地要求点击后保持勾选，导致检查失败。源码与实际行为表明空列表会恢复未勾选，这是正确行为；改为实际click()并明确断言未勾选、预览禁用后通过。该变化只在临时内存检查代码中进行，没有放宽产品断言或修改源码。本轮没有发现需要生产兼容修复的问题，因此PR只更新本报告。
+
+真实Chromium页面与PDF检查均基于合成内容，未做资源管理器鼠标双击；CMD文件实际执行已通过。复杂知识图谱完整鼠标交互和真实模型本轮未测；此前Codex/DeepSeek结果仅作为历史记录，不代表本轮新增调用。macOS本机回归不在本轮范围。
+
+产品集成脚本在finally中停止自身临时服务并清理合成账户、PDF和导出；专项测试临时目录同样清理。原日常服务/数据及其他进程未操作，环境变量仅存在于本次命令进程。独立3.12环境及合成预览截图留在Git忽略的tmp目录用于本机复核，不提交；PDF视觉检查的额外临时PNG在检查后清理。仅提交 docs/WINDOWS_VALIDATION.md，无模型凭据、个人路径、论文、缓存或机器配置。
