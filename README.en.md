@@ -22,7 +22,7 @@
 
 **Read plenty of papers, but struggle to connect them when it matters?** PaperPilot helps you move from understanding individual papers to organizing a body of research. Save reading reports and your own reflections, then use AI to explore connections around your long-term interests and current projects.
 
-Reading and knowledge management support different research fields; discovery and conference tracking focus on embodied intelligence and related AI research. Your personal workspace stays on your machine, using your own model access. The application interface is currently primarily in Chinese; this English README does not imply an English UI.
+Reading and knowledge management support different research fields; discovery and conference tracking focus on embodied intelligence and related AI research. Your personal workspace stays on your machine, using your own model access. The application interface is in Chinese. This English README helps developers understand the project and contribute, including adapting it to other languages.
 
 <a id="highlights"></a>
 ## Why PaperPilot?
@@ -34,7 +34,7 @@ Reading and knowledge management support different research fields; discovery an
 | **Connect the papers you have read** | A two-layer knowledge graph: a long-term field backbone and separate research threads. Start with an overview, then focus on a paper to inspect its connections and evidence. |
 | **Give the assistant research context** | Maintain your profile, research interests, and up to three research threads. Recommendations, reports, and chat use that context; paper-specific reflections also inform the graph. |
 | **Discover embodied AI papers with slides ready to read** | Open pregenerated explanatory slides, presented as PDFs, from Embodied AI Daily Papers before deciding what deserves a deeper read. |
-| **Make the tool your own** | Planned for open-source release, with source-level customization: adapt the interface, add paper sources, and extend reading workflows or modules, on your own or with coding assistants such as Codex. |
+| **Make the tool your own** | Customize the source: adapt the interface, add paper sources, and extend reading workflows or modules, on your own or with coding assistants such as Codex. |
 | **Keep a growing library manageable** | Reading, Read, Liked, and Favorites sections; import previously read papers, release original PDFs while keeping reports and their images, and restore PDFs later. |
 
 <a id="preview"></a>
@@ -152,7 +152,7 @@ The setup screen supplies an assistant-ready prompt with the project path, accou
 | Platform | Status |
 | --- | --- |
 | **macOS** | Primary development and validation platform. |
-| **Windows** | Native startup/shutdown, PDF export, and core Codex / DeepSeek flows have been tested on Windows. New changes still require regression checks. |
+| **Windows** | Native startup/shutdown, PDF export, and core Codex / DeepSeek flows have been tested on Windows. See the validation records for the tested scope. |
 | **Linux** | Full validation on a Linux machine has not been completed. |
 
 See the [setup, backup, and troubleshooting guide (Chinese)](docs/GETTING_STARTED.md) and [Windows validation records (Chinese)](docs/WINDOWS_VALIDATION.md).
@@ -192,9 +192,9 @@ Local accounts separate workspaces; they are not a public multi-tenant authentic
 <a id="contributing"></a>
 ## Contributing
 
-**Use PaperPilot as a starting point for your own research tool.** We plan to open-source the project so users can customize it at the source level: adjust the interface and defaults, connect new paper sources, or extend reading workflows and modules. Make changes yourself or work with coding assistants such as Codex to turn specific needs into working features, without waiting for every personal preference to become a core feature.
+**Use PaperPilot as a starting point for your own research tool.** Customize the project at the source level: adjust the interface and defaults, connect new paper sources, or extend reading workflows and modules. Make changes yourself or work with coding assistants such as Codex to turn specific needs into working features, without waiting for every personal preference to become a core feature.
 
-Application code, the frontend, and tests live in `paperpilot/`, `web/`, and `tests/`, respectively, making it easy to start with a small change. Preserve personal-data isolation and credential protection, and run the relevant tests. Improvements useful to others are welcome as pull requests.
+Application code, the frontend, and tests live in `paperpilot/`, `web/`, and `tests/`, respectively, making it easy to start with a small change. Preserve personal-data isolation and credential protection, and run the relevant tests. Improvements useful to others are welcome as pull requests. For language adaptation, see the [internationalization development notes (Chinese)](docs/LOCALIZATION.md).
 
 Feedback from real reading workflows is welcome, especially on parsing, formula and figure rendering, usability, and cross-platform compatibility. Include reproduction steps and sanitized screenshots, never API keys, login tokens, or personal databases.
 
@@ -225,8 +225,6 @@ Windows test commands are in the handoff guide. Real model tests require separat
 
 </details>
 
-## Project Status and Acknowledgments
-
-PaperPilot is **planned for open-source release**. It is currently in private collaboration, with no open-source license selected yet. Cloning currently requires repository access; the public release will specify licensing terms for use, modification, and redistribution.
+## Acknowledgments
 
 Thanks to [Hugging Face Daily Papers](https://huggingface.co/papers) and [Embodied AI Daily Papers](https://ipplab.github.io/embodied-ai-daily-papers/) for paper discovery, and to tools including KaTeX, Playwright, and 3d-force-graph. See the [demo asset notes (Chinese)](docs/assets/readme/README.md) for screenshot provenance.
