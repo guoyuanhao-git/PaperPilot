@@ -3,7 +3,7 @@ from pathlib import Path
 import zipfile
 
 ROOT = Path(__file__).resolve().parent.parent
-SINGLE = ['README.md', 'AGENTS.md', 'requirements.txt', 'run.sh', 'package.json', 'package-lock.json',
+SINGLE = ['README.md', 'README.en.md', 'AGENTS.md', 'requirements.txt', 'run.sh', 'package.json', 'package-lock.json',
           'run.cmd', '启动 PaperPilot.cmd', '停止 PaperPilot.cmd',
           '.gitignore', '.gitattributes', '启动 PaperPilot.command', '停止 PaperPilot.command',
           'tools/open-app.sh', 'tools/build_macos_app.py',
@@ -11,7 +11,7 @@ SINGLE = ['README.md', 'AGENTS.md', 'requirements.txt', 'run.sh', 'package.json'
           'PaperPilot.app/Contents/Resources/PaperPilot.icns', 'paperpilot/conference_registry.json', 'tests/fixtures/conference-seed.json',
           'tools/export.mjs', 'tools/package_source.py', 'tools/build-graph.mjs',
           'tools/graph3d-entry.js', 'web/graph3d-licenses.txt',
-          'docs/assets/readme/banner.svg', 'docs/assets/readme/discovery.png',
+          'docs/assets/readme/banner.svg', 'docs/assets/readme/banner.en.svg', 'docs/assets/readme/discovery.png',
           'docs/assets/readme/reading.png', 'docs/assets/readme/knowledge.png']
 TREES = {'paperpilot': {'.py', '.md'},
          'web': {'.html', '.css', '.js', '.mjs', '.svg', '.png', '.ico', '.icns', '.md'},

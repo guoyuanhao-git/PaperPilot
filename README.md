@@ -2,6 +2,8 @@
   <img src="docs/assets/readme/banner.svg" alt="PaperPilot：让读过的论文，成为下一步研究的起点。" width="100%">
 </p>
 
+<p align="center"><strong>简体中文</strong> · <a href="README.en.md">English</a></p>
+
 <p align="center">
   <strong>围绕你的研究方向，把论文发现、精读、思考与知识图谱连成一个工作流。</strong><br>
   A local-first research workspace for reading papers and connecting ideas.
@@ -34,6 +36,7 @@
 | **把读过的论文串起来** | AI 整理两层知识图谱：长期领域骨架 + 独立研究主线。总览看重点，点选论文后看局部联系和依据。 |
 | **让助手理解自己的研究问题** | 手填研究档案、研究方向、最多三条研究主线；推荐、解读和问答参考个人背景，逐篇思考参与图谱整理。 |
 | **发现具身论文时，已有讲解 PPT 可看** | 接入具身日报，从 HF 具身方向精选论文直接打开预生成的讲解幻灯片（PDF 阅读版），先看概括与讲解，再决定是否精读。 |
+| **把工具改成适合自己的样子** | 计划开源，支持基于源码 DIY：调整页面、接入新的论文来源、扩展阅读流程与功能模块，也可以让 Codex 等编程助手协助完成。 |
 | **让论文库长期保持可用** | 在读、已读、喜欢、收藏四区；导入曾读论文，按需释放原文空间，保留报告及其图片，之后可恢复 PDF。 |
 
 <a id="preview"></a>
@@ -191,6 +194,10 @@ npx.cmd playwright install chromium
 <a id="contributing"></a>
 ## 参与共建
 
+**不只使用 PaperPilot，也可以把它变成自己的科研工具。** 我们计划将项目开源，让使用者能够基于源码 DIY：从调整界面和默认配置，到接入新的论文来源、扩展阅读流程与功能模块。你可以自己修改，也可以让 Codex 等编程助手协助，把具体需求逐步实现；不必等待每一个个性化需求都进入主项目。
+
+应用代码、前端和测试分别位于 `paperpilot/`、`web/`、`tests/`，便于从一个小改动开始。修改时请保留个人数据隔离与凭据保护，并运行相关测试。通用改进也欢迎通过 PR 回馈项目。
+
 欢迎反馈真实阅读场景中的问题，尤其是论文解析、公式 / 图表显示、交互体验与跨平台兼容。提交问题时请附复现步骤和脱敏截图，不要附上 API Key、登录令牌或个人数据库。
 
 开发前请读 [AGENTS.md](AGENTS.md) 和[协作说明](docs/COLLABORATION.md)。Windows 适配从 [Windows 交接指南](docs/WINDOWS_HANDOFF.md) 开始，保留共同产品行为，通过独立分支和 PR 协作。
@@ -222,6 +229,6 @@ Windows 临时环境与测试命令见[交接指南](docs/WINDOWS_HANDOFF.md)。
 
 ## 项目状态与致谢
 
-PaperPilot 目前处于**私有协作阶段，尚未选择开源许可证**。克隆需要仓库访问权限，公开发布安排与许可证会另行明确。
+PaperPilot **计划开源**，目前仍处于私有协作阶段，尚未选择开源许可证。当前克隆需要仓库访问权限；正式开放源码时会明确许可证及使用、修改与分发条款。
 
 感谢 [HuggingFace DailyPapers](https://huggingface.co/papers) 与 [具身日报](https://ipplab.github.io/embodied-ai-daily-papers/) 提供论文发现入口，以及项目所使用的 KaTeX、Playwright、3d-force-graph 等工具。界面截图的制作说明见[演示素材说明](docs/assets/readme/README.md)。
