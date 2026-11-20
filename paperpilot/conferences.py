@@ -6,7 +6,7 @@ from datetime import datetime, date, timedelta, timezone
 from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 from pathlib import Path
-from . import store
+from . import store, conference_ratings
 
 REGISTRY = json.loads(Path(__file__).with_name('conference_registry.json').read_text(encoding='utf-8'))
 TZ = timezone(timedelta(hours=8))
@@ -162,6 +162,7 @@ def current(refresh=False, force=False):
         focused = None
     job = active_job()
     return {'catalog': cached.get('catalog'), 'focus': focused, 'error': cached.get('error', ''),
+            'classifications': conference_ratings.current(),
             'schedule': configuration(),
             'job': {k: job[k] for k in ('id','status','progress')} if job else None}
 

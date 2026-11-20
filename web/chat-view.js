@@ -1,6 +1,23 @@
 /* A deliberately small Markdown renderer. Raw HTML is always escaped. */
 (function(root){
  const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ function tableCells(line){
+  // Split only structural pipes. Absolute values, norms, conditional probabilities
+  // and code can contain pipes of their own, before inline math is rendered.
+  const source=line.trim(),cells=[];
+  const tokens=/`[^`\n]+`|\\\([^\n]*?\\\)|(?<![\\$])\$(?!\$)[^$\n]+?\$(?!\$)|\\\||\|/g;
+  let cell='',at=0;
+  for(const match of source.matchAll(tokens)){
+   cell+=source.slice(at,match.index);
+   if(match[0]==='|'){cells.push(cell.trim());cell='';}
+   else cell+=match[0]==='\\|'?'|':match[0];
+   at=match.index+match[0].length;
+  }
+  cells.push((cell+source.slice(at)).trim());
+  if(source.startsWith('|'))cells.shift();
+  if(cells.at(-1)===''&&source.endsWith('|'))cells.pop();
+  return cells;
+ }
  function render(text,formula=(s)=>esc(s)){
   function inline(value){
    const pattern=/(`[^`\n]+`|\*\*(?:(?!\*\*)[^\n])+\*\*|\[[^\]\n]+\]\(https?:\/\/[^\s)]+\)|\$[^$\n]+\$|\\\([^\n]*?\\\))/g;
@@ -17,7 +34,7 @@
    return out+esc(value.slice(at));
   }
   const lines=String(text).replace(/\r\n?/g,'\n').split('\n');let out='',i=0;
-  const cells=s=>s.trim().replace(/^\||\|$/g,'').split('|').map(c=>c.trim());
+  const cells=tableCells;
   const special=s=>/^(#{1,6}\s|```|\$\$|\\\[|[-*+]\s|\d+\.\s|>\s|---+$)/.test(s.trim());
   while(i<lines.length){
    let line=lines[i].trim();if(!line){i++;continue}

@@ -10,7 +10,7 @@ from urllib.parse import urlencode, urlsplit
 from zoneinfo import ZoneInfo
 from . import store
 
-DEFAULT_URL = 'http://219.223.200.145:8776'
+DEFAULT_URL = 'https://ipplab.github.io/embodied-ai-daily-papers'
 MAX_BYTES = 12 * 1024 * 1024
 
 
@@ -41,6 +41,13 @@ def fetch(path):
     return json.loads(raw)
 
 
+def catalog():
+    value = fetch('/data/catalog.json')
+    if not isinstance(value, dict) or value.get('version') != 1 or not isinstance(value.get('papers'), list):
+        raise ValueError('日报目录格式无效')
+    return value['papers']
+
+
 def paper_id(value):
     if not isinstance(value, str) or not re.fullmatch(r'\d{4}\.\d{4,5}(?:v\d+)?', value):
         raise ValueError('无效的日报论文编号')
@@ -60,7 +67,7 @@ def normalize(raw):
             'paper_url': 'https://arxiv.org/abs/' + ident, 'source_url': 'https://arxiv.org/abs/' + ident,
             'abstract': abstract[:50000], 'summary': summary[:3000], 'authors': [],
             'reading_url': base_url() + '/reader.html?' + urlencode({'id': ident, 'lang': 'zh'}),
-            'reading_ready': raw.get('reading_status') == 'ready',
+            'reading_ready': bool(raw.get('summary') and (raw.get('slides') or raw.get('slide_count', 0)) and (raw.get('downloads') or {}).get('pdf')),
             'evidence_scope': '具身日报概括' if raw.get('summary_scope') != 'abstract' else '具身日报摘要预览'}
 
 
@@ -76,7 +83,9 @@ def save_listing(value):
 def preview(ident):
     ident = paper_id(ident)
     try:
-        raw = fetch('/api/paper?' + urlencode({'id': ident}))
+        raw = next((row for row in catalog() if paper_id(row.get('id')) == ident), None)
+        if raw is None:
+            raise ValueError('日报中未找到该论文')
         item = normalize(raw)
         if item['id'] != ident:
             raise ValueError('论文编号不匹配')
@@ -97,11 +106,11 @@ def listing(day=None):
     if previous and time.time() - previous.get('fetched_at', 0) < 300:
         return previous
     try:
-        raw = fetch('/api/daily?' + urlencode({'date': day}))
-        if raw.get('day') != day or not isinstance(raw.get('papers'), list):
-            raise ValueError('日报数据格式无效')
+        rows = catalog()
         items, seen = [], set()
-        for row in raw['papers']:
+        for row in rows:
+            if day not in (row.get('hf_dates') or []):
+                continue
             item = normalize(row)
             if item['id'] not in seen:
                 items.append(item); seen.add(item['id'])

@@ -14,8 +14,8 @@ class EmbodiedDaily(unittest.TestCase):
         store.init()
         self.paper = {'id': '2610.12345v2', 'title': 'A robot paper', 'abstract': 'Original abstract',
                       'summary': 'English summary', 'translations': {'zh': {'summary': '中文概括'}},
-                      'reading_status': 'ready'}
-        self.response = {'day': '2026-10-01', 'papers': [self.paper, self.paper]}
+                      'reading_status': 'ready', 'hf_dates': ['2026-10-01'], 'slide_count': 5, 'downloads': {'pdf': 'https://example.org/deck.pdf'}}
+        self.response = {'version': 1, 'papers': [self.paper, self.paper]}
 
     def tearDown(self):
         self.scope.__exit__(None, None, None)
@@ -36,7 +36,7 @@ class EmbodiedDaily(unittest.TestCase):
             result = feed.listing('2026-10-01')
             self.assertEqual(len(result['items']), 1)
             self.assertEqual(feed.listing('2026-10-01')['id'], result['id'])
-            fetch.assert_called_once()
+            fetch.assert_called_once_with('/data/catalog.json')
         result['fetched_at'] = 0
         store.save('embodied_listing', result)
         with patch.object(feed, 'fetch', side_effect=OSError('offline')):
@@ -46,17 +46,16 @@ class EmbodiedDaily(unittest.TestCase):
 
     def test_wrong_day_and_invalid_id_rejected(self):
         with patch.object(feed, 'fetch', return_value=self.response):
-            with self.assertRaises(ValueError):
-                feed.listing('2026-10-02')
+            self.assertEqual(feed.listing('2026-10-02')['items'], [])
         for ident in ['https://other.test', '../secrets', '2610.12345&admin=1']:
             with self.assertRaises(ValueError):
                 feed.preview(ident)
-        with patch.object(feed, 'fetch', return_value=self.paper):
+        with patch.object(feed, 'fetch', return_value=self.response):
             with self.assertRaises(ValueError):
                 feed.preview('2610.99999')
 
     def test_local_queue_skip_recovery_and_account_isolation(self):
-        with patch.object(feed, 'fetch', return_value=self.paper):
+        with patch.object(feed, 'fetch', return_value=self.response):
             result = feed.preview('2610.12345')
         self.assertEqual(store.all_objects('favorite'), [])  # Preview never subscribes.
         favorite = collections.save('embodied-daily', result['id'], '2610.12345')

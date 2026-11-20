@@ -45,7 +45,7 @@ def resolve(origin, run_id, paper_id, *, allow_favorite=False):
 def save(origin, run_id, paper_id):
     paper = resolve(origin, run_id, paper_id)
     if paper is None:
-        raise ValueError('结果已更新，请重新筛选或刷新动态后加入待读清单')
+        raise ValueError('结果已更新，请刷新论文列表后加入待读清单')
     ident = key(paper)
     with store.LOCK:
         try:

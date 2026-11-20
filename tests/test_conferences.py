@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 from datetime import datetime
 from unittest.mock import patch
-from paperpilot import conferences as c, conference_update as update, conference_sources as sources, store, workspace
+from paperpilot import conferences as c, conference_update as update, conference_sources as sources, conference_ratings as ratings, store, workspace
 
 
 def catalog():
@@ -54,6 +54,38 @@ class Conferences(unittest.TestCase):
         value=catalog();value['updates']=[{'kind':'check','note':'keep history'}]
         self.assertEqual(c.import_catalog(value)['catalog'],value)
         self.assertEqual(c.current(force=True)['catalog'],value)
+
+    def test_parallel_classifications_cover_registry_with_explicit_absence(self):
+        result=c.current()['classifications']
+        self.assertEqual(set(result['entries']),{s['id'] for s in c.REGISTRY})
+        for item in c.REGISTRY:
+            self.assertEqual(result['entries'][item['id']]['ccf']['grade'],item['rank'])
+        self.assertEqual({ident:row['th']['grade'] for ident,row in result['entries'].items()},
+            dict.fromkeys(('cvpr','iccv','icml','neurips','aaai','iclr','eccv','icra','rss','mm'),'A')
+            | {'ijcai':'B','iros':'B','corl':'N'})
+        self.assertEqual(result['directories']['th']['version'],'2019-08-13')
+        self.assertNotIn('test',result['entries'])  # Unknown is not "not listed".
+
+    def test_classifications_do_not_rewrite_imported_history_or_focus(self):
+        value=catalog();value['series'][0].update(id='icra',name='ICRA',rank='C')
+        value['updates']=[{'kind':'check','summary':'preserve audit'}]
+        c.import_catalog(value);c.focus('icra')
+        with patch.object(sources,'fetch_page',side_effect=AssertionError('local only')):
+            result=c.current(force=True)
+        self.assertEqual(result['catalog'],value)
+        self.assertEqual(c.saved()['catalog'],value)
+        self.assertEqual(result['focus'],'icra')
+        self.assertEqual(result['classifications']['entries']['icra']['ccf']['grade'],'B')
+        # Importing dates or even forged classification metadata cannot change reviewed grades.
+        value['revision']+=1;value['classifications']={'entries':{'icra':{'th':{'grade':'C'}}}}
+        self.assertEqual(c.import_catalog(value)['classifications']['entries']['icra']['th']['grade'],'A')
+
+    def test_classification_responses_are_independent_copies(self):
+        response=ratings.current()
+        response['directories']['th']['version']='changed'
+        response['entries']['rss']['th']['grade']='B'
+        self.assertEqual(ratings.current()['directories']['th']['version'],'2019-08-13')
+        self.assertEqual(ratings.current()['entries']['rss']['th']['grade'],'A')
 
     def test_rejects_older_versions_missing_history_unsafe_sources(self):
         value=catalog();c.import_catalog(value)

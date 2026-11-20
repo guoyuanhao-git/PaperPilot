@@ -230,20 +230,18 @@ class ProfileMemorySources(unittest.TestCase):
             self.assertEqual(saved['reasoning']['detailed'], 'high')
             self.assertEqual(saved['reasoning']['knowledge'], 'medium')
             self.assertEqual(saved['reasoning_policy']['overrides'], policy['overrides'])
-            disabled = post('/api/settings', {'hotspot_news_enabled': False})['settings']
-            self.assertFalse(disabled['hotspot_news_enabled'])
             with urllib.request.urlopen(base + '/api/bootstrap') as response:
-                self.assertEqual(json.load(response)['daily']['items'], [])
-            with self.assertRaises(urllib.error.HTTPError) as error:
-                post('/api/daily-refresh', {'force': True})
-            self.assertEqual(error.exception.code, 400)
+                bootstrap = json.load(response)
+                self.assertNotIn('daily', bootstrap)
+                self.assertNotIn('news_sources', bootstrap)
+                self.assertTrue(all(s.get('kind') != 'news' for s in bootstrap['sources'].values()))
+            for endpoint in ['/api/daily-refresh', '/api/daily-more', '/api/news-sources', '/api/news-sources/probe']:
+                with self.assertRaises(urllib.error.HTTPError) as error:
+                    post(endpoint, {})
+                self.assertEqual(error.exception.code, 404)
             with patch('paperpilot.hf_daily.refresh', return_value={'items': [], 'days': 1}) as hf:
                 self.assertEqual(post('/api/hf-list', {'days': 1})['items'], [])
                 hf.assert_called_once()
-            with self.assertRaises(urllib.error.HTTPError):
-                post('/api/settings', {'hotspot_news_enabled': 'false'})
-            self.assertFalse(store.settings()['hotspot_news_enabled'])
-            post('/api/settings', {'hotspot_news_enabled': True})
             post('/api/settings', {'discovery_sources': ['arxiv', 'huggingface']})
             with self.assertRaises(urllib.error.HTTPError):
                 post('/api/settings', {'discovery_sources': ['qbitai']})

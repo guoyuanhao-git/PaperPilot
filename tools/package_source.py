@@ -10,7 +10,9 @@ SINGLE = ['README.md', 'AGENTS.md', 'requirements.txt', 'run.sh', 'package.json'
           'PaperPilot.app/Contents/Info.plist', 'PaperPilot.app/Contents/MacOS/PaperPilot',
           'PaperPilot.app/Contents/Resources/PaperPilot.icns', 'paperpilot/conference_registry.json', 'tests/fixtures/conference-seed.json',
           'tools/export.mjs', 'tools/package_source.py', 'tools/build-graph.mjs',
-          'tools/graph3d-entry.js', 'web/graph3d-licenses.txt']
+          'tools/graph3d-entry.js', 'web/graph3d-licenses.txt',
+          'docs/assets/readme/banner.svg', 'docs/assets/readme/discovery.png',
+          'docs/assets/readme/reading.png', 'docs/assets/readme/knowledge.png']
 TREES = {'paperpilot': {'.py', '.md'},
          'web': {'.html', '.css', '.js', '.mjs', '.svg', '.png', '.ico', '.icns', '.md'},
          'tests': {'.py', '.mjs', '.cjs'}, 'docs': {'.md'}}

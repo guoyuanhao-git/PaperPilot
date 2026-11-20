@@ -1,6 +1,6 @@
 /* A quiet entry into discussion, with a reading anchor across layout changes. */
 (function(root){
- let observer;
+ let observer,figuresObserver;
  const blocks=column=>[...column.querySelectorAll('h1,h2,h3,h4,p,li,figure,table,textarea')].filter(el=>!el.closest('figure,table,li')||el.matches('figure,table,li'));
  function capture(column,split){
   if(!column)return null;
@@ -20,12 +20,18 @@
   if(split)column.scrollTop+=delta;
   else window.scrollTo({top:window.scrollY+delta,behavior:'instant'});
  }
- function disconnect(){observer?.disconnect();observer=null;const button=document.getElementById('floating-paper-chat');if(button)button.hidden=true;}
+ function disconnect(){observer?.disconnect();observer=null;figuresObserver?.disconnect();figuresObserver=null;for(const id of ['floating-paper-chat','floating-paper-figures']){const button=document.getElementById(id);if(button)button.hidden=true;}}
+ function connectFigures(top,button,open){
+  if(!top||!button)return;
+  button.onclick=open;
+  const update=()=>{button.hidden=!(top.isConnected&&top.getBoundingClientRect().bottom<=0)};
+  figuresObserver=new IntersectionObserver(update,{threshold:0});figuresObserver.observe(top);update();
+ }
  function connect(top,button,open){
   disconnect();if(!top||!button||top.getAttribute('aria-expanded')==='true')return;
   button.onclick=open;
   const update=()=>{button.hidden=!(top.isConnected&&top.getBoundingClientRect().bottom<=0)};
   observer=new IntersectionObserver(update,{threshold:0});observer.observe(top);update();
  }
- root.ReadingChatEntry={capture,restore,connect,disconnect};
+ root.ReadingChatEntry={capture,restore,connect,connectFigures,disconnect};
 })(globalThis);

@@ -10,7 +10,7 @@ import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from . import embodied_daily, conferences, workspace, model_setup
-from . import discovery, documents, providers, service, store, user_profile, assistant_memory, daily, collections, publication, credentials, abstracts, hf_daily, title_search, library, recommendation_chat, knowledge, historical, historical_pdf, paper_identity, accounts, codex_account, style_samples, style_cache, news_sources, knowledge_schedule, hf_topics, hotspot_triage, paper_storage
+from . import discovery, documents, providers, service, store, user_profile, assistant_memory, collections, publication, credentials, abstracts, hf_daily, title_search, library, recommendation_chat, knowledge, historical, historical_pdf, paper_identity, accounts, codex_account, style_samples, style_cache, knowledge_schedule, hf_topics, hotspot_triage, paper_storage
 
 TOKEN = secrets.token_urlsafe(32)
 
@@ -124,10 +124,10 @@ class Handler(BaseHTTPRequestHandler):
                     mainline = ''
                 mainline = knowledge.default_mainline(mainline)
                 return self.response({'token': TOKEN, 'accounts': accounts.public(), 'codex_setup': codex_account.setup(), 'style_samples': style_samples.public(), 'style_cache': style_cache.status(), 'settings': config, 'workspace': workspace.current(), 'embodied_daily': embodied_daily.links(), 'capabilities': providers.capabilities(config),
-                                      'profile': user_profile.get(), 'memory_status': assistant_memory.status(), 'news_sources': news_sources.current(), 'sources': news_sources.catalog(), 'papers': papers, 'reading_stats': library.statistics(papers),
+                                      'profile': user_profile.get(), 'memory_status': assistant_memory.status(), 'sources': {k: v for k, v in discovery.SOURCES.items() if v.get('kind') != 'news'}, 'papers': papers, 'reading_stats': library.statistics(papers),
                                       'knowledge': knowledge.current(mainline=mainline), 'historical_import': historical.latest(), 'knowledge_schedule': knowledge_schedule.status(),
                                       'reading_history': store.all_objects('reading_history'), 'analysis_jobs': service.analysis_statuses(),
-                                      'hotspot_skips': hotspot_triage.public(), 'favorites': store.all_objects('favorite'), 'abstract_translations': store.all_objects('abstract_translation'), 'daily': daily.for_day(daily.cached()), 'recommendation_chat': recommendation_chat.public(), 'routes': store.all_objects('route', limit=5), 'jobs': store.all_objects('job', limit=20)})
+                                      'hotspot_skips': hotspot_triage.public(), 'favorites': store.all_objects('favorite'), 'abstract_translations': store.all_objects('abstract_translation'), 'recommendation_chat': recommendation_chat.public(), 'routes': store.all_objects('route', limit=5), 'jobs': store.all_objects('job', limit=20)})
             if path.startswith('/api/job/'):
                 return self.response(store.get('job', path.split('/')[-1]))
             match = re.fullmatch(r'/api/papers/([a-f0-9]{20})', path)
@@ -304,10 +304,7 @@ class Handler(BaseHTTPRequestHandler):
                         c['reasoning_policy'] = reasoning.validate_policy(body['reasoning_policy'])
                     c['reasoning'] = reasoning.effective(c)
                     c['knowledge_deep_thinking'] = c['reasoning']['knowledge'] == 'high'
-                    if 'hotspot_news_enabled' in body:
-                        if type(body['hotspot_news_enabled']) is not bool:
-                            raise ValueError('请选择是否启用领域动态')
-                        c['hotspot_news_enabled'] = body['hotspot_news_enabled']
+
                     if 'web_supplement_enabled' in body:
                         if type(body['web_supplement_enabled']) is not bool:
                             raise ValueError('请选择是否启用联网补充')
@@ -385,7 +382,7 @@ class Handler(BaseHTTPRequestHandler):
                         if not isinstance(figures, list) or len(figures) > 600:
                             raise ValueError('最多保存 600 张图表')
                         known_ids = {f['id'] for f in p['figures']}
-                        next_id = max([int(ident.split('-')[1]) for ident in known_ids] or [0]) + 1
+                        next_id = documents.next_figure_number(p)
                         seen = set()
                         for f in figures:
                             if not isinstance(f, dict):
@@ -400,8 +397,12 @@ class Handler(BaseHTTPRequestHandler):
                             seen.add(f['id'])
                             f['caption'] = str(f.get('caption', ''))[:1600]
                             f['caption_zh'] = str(f.get('caption_zh', ''))[:1600]
+                            label = documents.figure_label(f['caption'])
+                            if label:
+                                f['kind'] = label[0]
                             f['selected'] = bool(f.get('selected'))
                             documents.crop_figure(p['id'], f)
+                        p['last_figure_number'] = next_id - 1
                         p['figures'] = figures
                         if p.get('report'):
                             p['report']['figures'] = [next((dict(f) for f in figures if f['id'] == old['id']), old) for old in p['report'].get('figures', [])]
@@ -425,6 +426,8 @@ class Handler(BaseHTTPRequestHandler):
                 store.remove('reading_history', body['id'])
                 assistant_memory.forget_paper(body['id'])
                 return self.response({'ok': True})
+            if path == '/api/figure-remove':
+                return self.response(documents.remove_figure(body['id'], body.get('figure_id'), body.get('expected')))
             if path == '/api/captions':
                 return self.response(service.translate_captions(body['id']))
             if path == '/api/analyze':
@@ -437,21 +440,10 @@ class Handler(BaseHTTPRequestHandler):
                 return self.response(service.chat(body['id'], body['question']))
             if path == '/api/export':
                 return self.response(export_report(body['id'], body['format']))
-            if path == '/api/news-sources/probe':
-                return self.response(news_sources.probe(body.get('url')))
-            if path == '/api/news-sources':
-                config = news_sources.save(body)
-                return self.response({'config': config, 'sources': news_sources.catalog(config), 'daily': daily.for_day(daily.cached(), body.get('day', 0))})
             if path == '/api/hotspot-skip':
                 return self.response(hotspot_triage.skip(body))
             if path == '/api/hotspot-restore':
                 return self.response(hotspot_triage.restore(body.get('id')))
-            if path == '/api/daily-refresh':
-                day = body.get('day', 0)
-                daily.for_day({'items': []}, day)  # Validate before fetching remote sources.
-                return self.response(daily.for_day(daily.refresh(bool(body.get('force', False))), day))
-            if path == '/api/daily-more':
-                return self.response(daily.more(body.get('day', 0), body.get('count'), body.get('date')))
             if path == '/api/model-discuss':
                 return self.response(recommendation_chat.discuss(body.get('question'), body.get('revision')))
             if path == '/api/model-recommendations':

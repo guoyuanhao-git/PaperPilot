@@ -40,9 +40,9 @@ vm.runInContext(`
 let state={papers:[{id:'a',figures:[{id:'fig-1',page:1,bbox:[0,0,1,1]}]},{id:'b'}]},selected=state.papers[0],view='paper';
 let crop={paperId:'a',figure:state.papers[0].figures[0],page:1,bbox:[.1,.2,.8,.9]},resolve,reject,requests=0,renders=0,closed=false;
 const button={disabled:false},caption={value:'新图注'},dialog={close(){closed=true}};
-const $=key=>({'#save-crop':button,'#crop-caption':caption,'#crop-dialog':dialog,'#cancel-crop':{},'#close-crop':{}}[key]);
+const $=key=>({'#save-crop':button,'#crop-caption':caption,'#crop-source-caption':{value:'Figure 10: corrected source'},'#crop-dialog':dialog,'#cancel-crop':{},'#close-crop':{}}[key]);
 const ViewContinuity={capture:()=>({position:'saved'})};function render(position){assert.ok(position);renders++}function toast(){}
-function request(path,body){requests++;assert.equal(body.id,'a');assert.deepEqual(body.figures[0].bbox,[.1,.2,.8,.9]);return new Promise((yes,no)=>{resolve=yes;reject=no})}
+function request(path,body){requests++;assert.equal(body.id,'a');assert.equal(body.figures[0].caption,'Figure 10: corrected source');assert.deepEqual(body.figures[0].bbox,[.1,.2,.8,.9]);return new Promise((yes,no)=>{resolve=yes;reject=no})}
 `+accept+save+`
 async function test(){
  const task=saveCrop();assert.equal(button.disabled,true);assert.equal(closed,false);

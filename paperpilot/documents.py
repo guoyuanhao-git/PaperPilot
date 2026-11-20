@@ -63,6 +63,41 @@ def directory(ident):
     return store.data_dir() / 'papers' / ident
 
 
+def next_figure_number(paper):
+    figures = [*paper.get('figures', []), *(paper.get('report') or {}).get('figures', [])]
+    numbers = [int(f['id'][4:]) for f in figures if re.fullmatch(r'fig-\d+', f.get('id', ''))]
+    return max([paper.get('last_figure_number', 0), *numbers]) + 1
+
+
+def remove_figure(ident, figure_id, expected):
+    from .service import SAVE_LOCK
+    with SAVE_LOCK:
+        paper = store.get('paper', ident)
+        if any(j.get('paper_id') == ident and j.get('status') in ('running', 'queued')
+               for j in store.all_objects('job')):
+            raise ValueError('这篇论文还有任务正在运行，请结束后再移除图表')
+        figure = next((f for f in paper['figures'] if f['id'] == figure_id), None)
+        if not figure or figure != expected:
+            raise ValueError('图表已变化，请刷新后重新确认')
+        paper['last_figure_number'] = next_figure_number(paper) - 1
+        removed = {figure_id}
+        while True:
+            aliases = {f['id'] for f in paper['figures'] if f.get('duplicate_of') in removed}
+            if aliases <= removed:
+                break
+            removed.update(aliases)
+        suppressed = paper.setdefault('removed_figure_candidates', [])
+        for f in paper['figures']:
+            if f['id'] in removed:
+                record = {'page': f['page'], 'caption': f.get('caption', ''), 'pdf_sha256': paper.get('pdf_sha256')}
+                if record not in suppressed:
+                    suppressed.append(record)
+        paper['figures'] = [f for f in paper['figures'] if f['id'] not in removed]
+        # Keep report snapshots and their images intact; disposable crops use the shared LRU.
+        store.save('paper', paper)
+        return paper
+
+
 def render_page(ident, page_no):
     p = store.get('paper', ident)
     if p.get('pdf_released'):
@@ -537,7 +572,9 @@ def inventory(paper, source_path=None):
     figures = paper['figures']
     label = figure_label
     seen = {(f['page'], label(f['caption'])) for f in figures if label(f['caption'])}
-    next_id = max([int(f['id'].split('-')[1]) for f in figures] or [0]) + 1
+    seen.update((f['page'], label(f['caption'])) for f in paper.get('removed_figure_candidates', [])
+                if f.get('pdf_sha256') == paper.get('pdf_sha256') and label(f['caption']))
+    next_id = next_figure_number(paper)
     appendix = False
     references_seen = False
     with PDF_LOCK, pdfplumber.open(source_path or directory(paper['id']) / 'source.pdf') as pdf:

@@ -1,11 +1,25 @@
 import * as Rules from './logic.mjs';
 export async function mount(root,api){
 const html=await fetch('/conferences/page.html').then(r=>r.text());if(!root.host.isConnected)return ()=>{};root.innerHTML='<link rel="stylesheet" href="/conferences/style.css">'+html;
-let catalog=null,conferences=[],fetchFailed=false,activeJob=null,config={enabled:false},disposed=false;
+let classifications={directories:{},entries:{}},catalog=null,conferences=[],fetchFailed=false,activeJob=null,config={enabled:false},disposed=false;
 const $ = id => root.getElementById(id);
 const esc = text => String(text ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let focusId = null, direction = '全部';
 
+function rating(c,key){return classifications.entries[c.id]?.[key]||{grade:null,page:null};}
+function ratingText(c,key){const grade=rating(c,key).grade;return `${classifications.directories[key]?.label||key.toUpperCase()} ${grade==='N'?'未收录':grade||'待核实'}`;}
+function ratingBadges(c,hero=false){
+ return `<span class="rating-badges${hero?' hero-ratings':''}">${['ccf','th'].map(key=>{
+  const grade=rating(c,key).grade,text=`${key.toUpperCase()}-${grade||'?'}`;
+  const title=`${ratingText(c,key)} · ${classifications.directories[key]?.version||'版本待核实'} · N 表示本版未收录，? 表示待核实 · 查看依据`;
+  return `<button class="rating ${['A','B','C'].includes(grade)?'':'unlisted'}" data-detail="${c.id}" title="${esc(title)}">${esc(text)}</button>`;
+ }).join('')}</span>`;
+}
+function ratingSources(c){return `<section class="rating-sources"><h3>分类目录</h3>${Object.entries(classifications.directories).map(([key,d])=>{
+ const entry=c?rating(c,key):null,page=entry?.page;
+ const detail=entry?(entry.grade==='N'?'本版未收录':entry.grade?`${entry.grade} 类 · 第 ${page} 页`:'尚未核实此会议'):'';
+ return `<div class="rating-source"><div><strong>${esc(d.label==='TH'?'TH-CPL':d.label)}</strong><span>${esc(d.version)}</span></div>${detail?`<p>${esc(detail)}</p>`:''}<p>${esc(d.name)}</p><div class="rating-links"><a href="${esc(d.source)}" target="_blank" rel="noopener">${d.source===d.document?'查看目录':'官方来源'} ↗</a>${d.source!==d.document?`<a href="${esc(d.document)}${page?'#page='+page:''}" target="_blank" rel="noopener">${esc(d.documentLabel)} ↗</a>`:''}<span>核对于 ${esc(d.checked)}</span></div></div>`;
+ }).join('')}<p class="rating-note">两套分类独立展示；未收录不代表较低等级。采用上述目录版本，不随会议届次变化。</p></section>`;}
 function current(){return catalog.series.map(x=>Rules.selected(x));}
 function closed(c){return Rules.isClosed(c);}
 function heroConference(){return Rules.hero(conferences,focusId);}
@@ -27,15 +41,16 @@ function status(c){
 }
 function renderHero() {
  const c=heroConference(); if(!c){$('spotlight').innerHTML='<div class="hero-title">等待下一次投稿机会</div><p class="hero-subtitle">暂无已核实的未来截止，会议日期请查看下方卡片。</p>';return;}
+ $('spotlight').classList.toggle('is-closed',closed(c));
  const selected=c.id===focusId,n=Rules.nextNode(c),s=status(c);
  const count=n&&n.precise?`<strong>${Rules.daysUntil(n.end)}</strong><span>天</span><small>${n.audience==='first'?'距离':n.audience==='invited'?'仅获邀作者 · ':'仅已注册作者 · '}${esc(label(c,n.key))}</small>`:`<strong class="text-state">${closed(c)?'已截止':n?'时刻待核':'日期未列'}</strong><small>${n?'官方日期 '+esc(c[n.key+'Day']||''):closed(c)?'首次投稿入口已截止':'所查官网未列投稿日期'}</small>`;
- $('spotlight').innerHTML=`<div class="spotlight-top"><span>${selected?'★ 重点关注':'◷ 最近截稿'}</span><button class="hero-control" data-focus="${c.id}" aria-pressed="${selected}">${selected?'取消关注':'☆ 关注此会议'}</button></div><div class="hero-content"><div><div class="hero-title">${esc(c.name)}<span class="year">${c.year}</span><span class="badge">CCF-${c.rank}</span></div><p class="hero-subtitle">${esc(c.topics)}</p></div><div class="countdown">${count}</div></div><div class="hero-bottom"><span>${esc(label(c,'abstract'))}<b>${timeText(c,'abstract')}</b></span><span>${esc(label(c,'paper'))}<b>${timeText(c,'paper')}</b></span><a href="${esc(c.source)}" target="_blank" rel="noopener">查看官网 ↗</a></div>${closed(c)?`<div class="hero-note">${esc(Rules.nextEditionNote(c))}</div>`:c.paperAudience==='invited'?'<div class="hero-note">两阶段投稿：6 页扩展摘要 → 获邀后提交最终全文</div>':''}`;
+ $('spotlight').innerHTML=`<div class="spotlight-top"><span>${selected?'★ 重点关注':'◷ 最近截稿'}</span><button class="hero-control" data-focus="${c.id}" aria-pressed="${selected}">${selected?'取消关注':'☆ 关注此会议'}</button></div><div class="hero-content"><div><div class="hero-title">${esc(c.name)}<span class="year">${c.year}</span>${ratingBadges(c,true)}</div><p class="hero-subtitle">${esc(c.topics)}</p></div><div class="countdown">${count}</div></div><div class="hero-bottom"><span>${esc(label(c,'abstract'))}<b>${timeText(c,'abstract')}</b></span><span>${esc(label(c,'paper'))}<b>${timeText(c,'paper')}</b></span><a href="${esc(c.source)}" target="_blank" rel="noopener">查看官网 ↗</a></div>${closed(c)?`<div class="hero-note">${esc(Rules.nextEditionNote(c))}</div>`:c.paperAudience==='invited'?'<div class="hero-note">两阶段投稿：6 页扩展摘要 → 获邀后提交最终全文</div>':''}`;
 }
 function renderCards() {
  const query=$('search').value.trim().toLowerCase();
- const list=conferences.filter(c=>(direction==='全部'||c.group===direction)&&(!query||`${c.name} ${c.topics} ${c.group} CCF-${c.rank}`.toLowerCase().includes(query))&&(!$('hide-past').checked||!closed(c))).sort((a,b)=>Rules.compare(a,b,focusId));
+ const list=conferences.filter(c=>(direction==='全部'||c.group===direction)&&(!query||`${c.name} ${c.topics} ${c.group} ${ratingText(c,'ccf')} ${ratingText(c,'th')} CCF-${rating(c,'ccf').grade||''}`.toLowerCase().includes(query))&&(!$('hide-past').checked||!closed(c))).sort((a,b)=>Rules.compare(a,b,focusId));
  $('count').textContent=`${list.length} / ${conferences.length}`; $('empty').hidden=!!list.length;
- const cardsHTML=list.map(c=>{const s=status(c),saved=c.id===focusId;return `<article class="card ${saved?'focused':''}" data-series="${c.id}" data-group="${esc(c.group)}"><div class="card-top"><span class="conference-icon" aria-hidden="true">${c.group==='机器人'?'⌘':c.group==='视觉与多模态'?'◈':'∿'}</span><span class="conference-name">${esc(c.name)}<span class="year">${c.year}</span></span><button class="star ${saved?'saved':''}" data-focus="${c.id}" aria-label="${saved?'取消关注':'关注'} ${esc(c.name)}" aria-pressed="${saved}" title="${saved?'取消关注':'设为唯一关注会议'}">${saved?'★':'☆'}</button></div><p class="card-subtitle">${esc(c.topics)}</p><div><span class="tag rank rank-${c.rank}">CCF-${c.rank}</span><span class="tag">${esc(c.group)}</span></div><div class="dates">${['abstract','paper'].map(k=>`<div class="date-row ${!c[k]&&!c[k+'Day']?'pending':''}"><span>${esc(label(c,k))}</span><b>${timeText(c,k)}</b></div>`).join('')}</div><div class="card-bottom"><span class="status ${s.cls}">● ${s.text}</span><button class="source-link" data-detail="${c.id}">历届与来源 ↗</button></div>${closed(c)?`<div class="special">${esc(Rules.nextEditionNote(c))}</div>`:c.paperAudience==='invited'?'<div class="special">两阶段投稿 · 最终全文仅限获邀作者</div>':''}${['failed','conflict'].includes(c.verification)?'<div class="special">官方信息需复核 · 已保留原日期</div>':''}</article>`}).join('');
+ const cardsHTML=list.map(c=>{const s=status(c),saved=c.id===focusId;return `<article class="card ${closed(c)?'is-closed':''} ${saved?'focused':''}" data-series="${c.id}" data-group="${esc(c.group)}"><div class="card-top"><span class="conference-icon" aria-hidden="true">${c.group==='机器人'?'⌘':c.group==='视觉与多模态'?'◈':'∿'}</span><span class="conference-name">${esc(c.name)}<span class="year">${c.year}</span></span><button class="star ${saved?'saved':''}" data-focus="${c.id}" aria-label="${saved?'取消关注':'关注'} ${esc(c.name)}" aria-pressed="${saved}" title="${saved?'取消关注':'设为唯一关注会议'}">${saved?'★':'☆'}</button></div><p class="card-subtitle">${esc(c.topics)}</p><div class="conference-tags">${ratingBadges(c)}<span class="tag direction-tag">${esc(c.group)}</span></div><div class="dates">${['abstract','paper'].map(k=>`<div class="date-row ${!c[k]&&!c[k+'Day']?'pending':''}"><span>${esc(label(c,k))}</span><b>${timeText(c,k)}</b></div>`).join('')}</div><div class="card-bottom"><span class="status ${s.cls}">● ${s.text}</span><button class="source-link" data-detail="${c.id}">历届与来源 ↗</button></div>${closed(c)?`<div class="special">${esc(Rules.nextEditionNote(c))}</div>`:c.paperAudience==='invited'?'<div class="special">两阶段投稿 · 最终全文仅限获邀作者</div>':''}${['failed','conflict'].includes(c.verification)?'<div class="special">官方信息需复核 · 已保留原日期</div>':''}</article>`}).join('');
  if($('cards').innerHTML!==cardsHTML)$('cards').innerHTML=cardsHTML;
 }
 function render(){
@@ -51,14 +66,16 @@ let toastTimer;
 function toast(text){$('toast').textContent=text;$('toast').classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('show'),2400);}
 function showDetail(id,year){
  const series=catalog.series.find(c=>c.id===id);const shown=conferences.find(c=>c.id===id);const edition=series.editions.find(e=>e.year===Number(year))||shown;const c={...series,...edition};
- $('detail-title').textContent=`${c.name} ${c.year} · CCF-${c.rank}`;
- $('detail-body').innerHTML=`<label class="edition-select">保存的届次 <select id="detail-year" aria-label="查看会议届次">${[...series.editions].sort((a,b)=>b.year-a.year).map(e=>`<option value="${e.year}" ${e.year===c.year?'selected':''}>${e.year}${e.year===shown.year?' · 当前展示':''}${e.announcement==='unverified'?' · 待核实':e.announcement==='meeting'?' · 仅公布会期':''}</option>`).join('')}</select></label><p>${esc(c.topics)} · ${esc(c.track||'研究论文')}</p><div class="dates">${['abstract','paper'].map(k=>`<div class="date-row"><span>${esc(label(c,k))}</span><b>${timeText(c,k)}</b></div>`).join('')}</div><p>${esc(c.note||'官方已列出投稿日期，请在投稿前核对最新通知。')}</p><p>${esc(status(c).text)}。${c.paperAudience==='invited'?'全文阶段仅面向获邀作者。':c.paperAudience==='registered'?'摘要注册截止后，全文阶段仅面向已注册作者。':''}</p><p>最近成功核查：${esc(c.checked||'尚未核查')}${c.verification==='failed'?' · 最近访问失败，保留原记录':c.verification==='conflict'?' · 存在冲突，待复核':''}。${c.rank==='N'?'CCF-N 为本站未收录简写。':''}</p><p><a href="${esc(c.source)}" target="_blank" rel="noopener">打开官方来源 ↗</a></p>${c.sourceProofs?.length?`<details><summary>核查依据</summary>${c.sourceProofs.map(p=>`<p>${esc(p.quote)}<br><a href="${esc(p.url)}" target="_blank" rel="noopener">官方原文 ↗</a></p>`).join('')}</details>`:''}`;
+ $('detail-title').textContent=`${c.name} ${c.year}`;
+ $('detail-body').innerHTML=`<label class="edition-select">保存的届次 <select id="detail-year" aria-label="查看会议届次">${[...series.editions].sort((a,b)=>b.year-a.year).map(e=>`<option value="${e.year}" ${e.year===c.year?'selected':''}>${e.year}${e.year===shown.year?' · 当前展示':''}${e.announcement==='unverified'?' · 待核实':e.announcement==='meeting'?' · 仅公布会期':''}</option>`).join('')}</select></label><p>${esc(c.topics)} · ${esc(c.track||'研究论文')}</p><div class="dates">${['abstract','paper'].map(k=>`<div class="date-row"><span>${esc(label(c,k))}</span><b>${timeText(c,k)}</b></div>`).join('')}</div><p>${esc(c.note||'官方已列出投稿日期，请在投稿前核对最新通知。')}</p><p>${esc(status(c).text)}。${c.paperAudience==='invited'?'全文阶段仅面向获邀作者。':c.paperAudience==='registered'?'摘要注册截止后，全文阶段仅面向已注册作者。':''}</p><p>最近成功核查：${esc(c.checked||'尚未核查')}${c.verification==='failed'?' · 最近访问失败，保留原记录':c.verification==='conflict'?' · 存在冲突，待复核':''}。</p><p><a href="${esc(c.source)}" target="_blank" rel="noopener">打开官方来源 ↗</a></p>${c.sourceProofs?.length?`<details><summary>核查依据</summary>${c.sourceProofs.map(p=>`<p>${esc(p.quote)}<br><a href="${esc(p.url)}" target="_blank" rel="noopener">官方原文 ↗</a></p>`).join('')}</details>`:''}`;
+ $('detail-body').insertAdjacentHTML('beforeend',ratingSources(c));
  $('detail-year').addEventListener('change',e=>showDetail(id,e.target.value));if(!$('details').open)$('details').showModal();
 }
 function localDate(value){return value?new Date(value).toLocaleString('zh-CN',{timeZone:'Asia/Shanghai',hour12:false}):'尚未执行';}
 let lastHistoryHTML='';
 function updateMeta(){
  const schedule='每周日 10:00 · 北京时间';
+ const sourcesHTML=ratingSources();if($('ranking-sources').innerHTML!==sourcesHTML)$('ranking-sources').innerHTML=sourcesHTML;
  $('auto-check').checked=!!config.enabled;
  const last=catalog.updates.find(x=>x.kind==='check');const failed=last?.checks?.some(x=>['failed','conflict'].includes(x.outcome));
  $('update-status').textContent=activeJob?activeJob.progress:fetchFailed?'本次核查未成功，已保留现有资料':`最近核查：${localDate(catalog.lastRunAt)}${failed?' · 部分来源需复核':''}`;
@@ -71,7 +88,7 @@ function updateMeta(){
 let loading=false;
 async function loadCatalog(){
  if(loading)return;loading=true;$('refresh-catalog').disabled=true;
- try{const result=await api.request('/api/conferences');if(!root.host.isConnected)return;const changed=!catalog||catalog.revision!==result.catalog?.revision||focusId!==result.focus;catalog=result.catalog;fetchFailed=!!result.error;focusId=result.focus;activeJob=result.job;config=result.schedule;
+ try{const result=await api.request('/api/conferences');if(!root.host.isConnected)return;const changed=!catalog||catalog.revision!==result.catalog?.revision||focusId!==result.focus||JSON.stringify(classifications)!==JSON.stringify(result.classifications);classifications=result.classifications||{directories:{},entries:{}};catalog=result.catalog;fetchFailed=!!result.error;focusId=result.focus;activeJob=result.job;config=result.schedule;
  if(catalog){conferences=current();if(focusId&&!conferences.some(c=>c.id===focusId))focusId=null;if(changed)render();else updateMeta();}
  else{$('spotlight').className='empty-source';$('spotlight').innerHTML='<h2>会议目录暂不可用</h2>'; }
  }catch(e){fetchFailed=true;if(catalog)updateMeta();else $('update-status').textContent=e.message;}

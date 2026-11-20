@@ -64,22 +64,11 @@ async function restoreHotspot(button){
 function hotspots(){
  clearExpiredHotspots();
  cardRefs=[];
- if(!hotspotNewsEnabled())hotspotSection='papers';
- const original=dailyByDay[hotspotDay]||(state.daily?.day===hotspotDay?state.daily:{items:[],articles:[],source_status:[]});
- const daily={...original,articles:(original.articles||[]).filter(a=>!hotspotIsSkipped(a,'article')),items:original.items.filter(p=>!hotspotIsSkipped(p))};
  return head('RESEARCH RADAR','热点发现','',`<button id="show-skipped-hotspots" class="secondary hotspot-skipped-entry" aria-expanded="${hotspotSkippedOpen}">已略过 <span class="count">${(state.hotspot_skips||[]).length}</span></button>`)+`
- <div class="section-head"><div class="search-mode-tabs" role="group" aria-label="热点内容"><button data-hotspot-section="papers" class="${hotspotSection==='papers'?'primary':'secondary'}">论文</button>${hotspotNewsEnabled()?`<button data-hotspot-section="news" class="${hotspotSection==='news'?'primary':'secondary'}">动态</button>`:''}</div>${hotspotSection==='papers'?`<div class="paper-feed-control"><span class="hf-brand">🤗 HF</span><select id="paper-feed" aria-label="论文来源"><option value="embodied" ${paperFeed==='embodied'?'selected':''}>具身日报</option><option value="hf" ${paperFeed==='hf'?'selected':''}>全量列表</option></select></div>`:''}</div>
+ <div class="section-head"><div class="paper-feed-control"><span class="hf-brand">🤗 HF</span><select id="paper-feed" aria-label="论文来源"><option value="embodied" ${paperFeed==='embodied'?'selected':''}>具身日报</option><option value="hf" ${paperFeed==='hf'?'selected':''}>全量列表</option></select></div></div>
  ${skippedHotspots()}
- ${hotspotSection==='papers'&&paperFeed==='embodied'?embodiedPanel():''}
- ${hotspotNewsEnabled()&&hotspotSection==='news'?foldPanel('news-digest','领域动态',`${daily.articles?.length||0} 篇推文 · ${daily.items.length} 篇论文`,`
- <div class="section-head news-controls"><div class="row"><button id="manage-news-sources" class="textbtn small" type="button">关注来源</button><label class="inline-field">日期<select id="hotspot-day" ${dailyLoading?'disabled':''}>${[[0,'今日'],[1,'昨日'],[2,'前日']].map(([day,name])=>`<option value="${day}" ${hotspotDay===day?'selected':''}>${name}</option>`).join('')}</select></label><button id="refresh-daily" class="secondary" ${dailyLoading?'disabled':''}>${dailyLoading?'获取与筛选中…':'刷新动态'}</button></div></div>
- <div class="search-mode-tabs" role="group" aria-label="公众号动态内容">${[['articles','推文',daily.articles?.length||0],['papers','相关论文',daily.items.length]].map(([key,label,count])=>`<button class="${hotspotTab===key?'primary':'secondary'}" data-hotspot-tab="${key}" aria-pressed="${hotspotTab===key}">${label} <span class="count">${count}</span></button>`).join('')}</div>
- <p class="small muted">${esc(daily.date||'')} · 北京时间${daily.updated_at?' · 更新于 '+date(daily.updated_at):''}</p>
- ${dailyError?`<p class="error" role="alert">${esc(dailyError)}</p>`:''}
- <details class="coverage"><summary>来源状态</summary>${sourceStates(daily)}</details>
- ${daily.filtering?.message?`<p class="error" role="alert">${esc(daily.filtering.message)}</p>`:''}
- <div class="daily-list" data-scroll-key="news-${hotspotDay}-${hotspotTab}">${hotspotTab==='articles'?(daily.articles||[]).map(articleCard).join('')||`<div class="empty"><p>${dailyLoading?'正在读取文章并结合研究档案初筛…':'当前没有待浏览推文，可切换日期、查看已略过或来源状态。'}</p></div>`:daily.items.map(p=>paperCard(p,'daily')).join('')||'<div class="empty"><p>当前没有待浏览的相关论文，可查看已略过或来源状态。</p></div>'}</div><div class="daily-more-actions"><button id="daily-more" class="secondary" ${dailyLoading||!original.has_more?'disabled':''}>${dailyLoading?'处理中…':original.has_more?'查看更多':'暂无更多'}</button></div>`,{defaultOpen:true,className:'daily-panel'}):''}
- ${hotspotSection==='papers'&&paperFeed==='hf'?`<section class="panel search-panel"><h3 class="hotspot-section-title">全量列表</h3><div class="search-options hf-options"><label>列表时间<select id="hf-days" ${hfLoading||busy?'disabled':''}>${[[1,'近一天'],[3,'近三天']].map(([v,t])=>`<option value="${v}" ${String(v)===hfDays?'selected':''}>${t}</option>`).join('')}</select></label><button id="hf-list" class="secondary" ${hfLoading||busy?'disabled':''}>${hfLoading?'正在读取…':hfResult?.days===Number(hfDays)?'刷新列表':'查看列表'}</button></div>${hfError?`<p class="error">${esc(hfError)}</p>`:''}</section>
+ ${paperFeed==='embodied'?embodiedPanel():''}
+ ${paperFeed==='hf'?`<section class="panel search-panel"><h3 class="hotspot-section-title">全量列表</h3><div class="search-options hf-options"><label>列表时间<select id="hf-days" ${hfLoading||busy?'disabled':''}>${[[1,'近一天'],[3,'近三天']].map(([v,t])=>`<option value="${v}" ${String(v)===hfDays?'selected':''}>${t}</option>`).join('')}</select></label><button id="hf-list" class="secondary" ${hfLoading||busy?'disabled':''}>${hfLoading?'正在读取…':hfResult?.days===Number(hfDays)?'刷新列表':'查看列表'}</button></div>${hfError?`<p class="error">${esc(hfError)}</p>`:''}</section>
  ${hfResult?hfResults():''}`:''}
 `;
 }
@@ -98,9 +87,6 @@ function hfResults(){
  ${!hfResult.complete?'<p class="error">部分日期未读取完整，可刷新重试。</p>':''}<details class="coverage"><summary>读取状态</summary>${sourceStates(hfResult)}</details><div class="daily-list" data-scroll-key="hf-${hfResult.id}">${visible.map(p=>paperCard({...p,reason:p.classification?.reason||''},'hf-listing',hfResult.id)).join('')||`<div class="empty"><p>${onlyMine?'暂无匹配论文，可切换全部。':'暂无待浏览论文。'}</p></div>`}</div>`,{defaultOpen:true,className:'hf-results'});
 }
 
-function articleCard(a){
- return `<article class="rec-card news-card"><div class="small muted">${sourceLabel(a.source)} · ${a.channel==='wechat'?'微信 RSS':a.channel==='rss'?'订阅源':'公开网站'} · ${date(a.published)}${a.cached?' · 上次缓存':''}</div><h3><a href="${esc(a.source_url)}" target="_blank" rel="noopener">${esc(a.title)} ↗</a></h3>${a.selection_reason?`<p class="rationale">${esc(a.selection_reason)}</p>`:''}<div class="row card-actions"><a class="secondary" href="${esc(a.source_url)}" target="_blank" rel="noopener">阅读推文 ↗</a><span class="small muted">${a.links_unavailable?'论文链接未完整提取':(a.paper_ids||[]).length+' 篇相关论文'}</span>${hotspotSkipButton(a,'news-article')}</div></article>`;
-}
 function modelDiscussion(){
  const chat=state.recommendation_chat||{messages:[],candidates:[]}, name=state.profile?.display_name?.trim()||'我';
  return `<div class="section-head"><h3>和助手一起找论文</h3><button id="reset-model-discussion" class="textbtn" ${modelPending||!chat.messages.length?'disabled':''}>重新讨论</button></div>
@@ -152,12 +138,8 @@ async function sendRecommendationMessage(){
 }
 function bindDiscovery(){
  bindEmbodied();
- if($('#daily-more'))$('#daily-more').onclick=()=>guard(moreDaily);
- if($('#manage-news-sources'))$('#manage-news-sources').onclick=openNewsSources;
  document.querySelectorAll('[data-fold-key]').forEach(el=>el.ontoggle=()=>{setFoldExpanded(el.dataset.foldKey,el.open);const action=el.querySelector(':scope > summary [data-fold-action]');if(action)action.textContent=el.open?'收起':'展开'});
 
- document.querySelectorAll('[data-hotspot-tab]').forEach(b=>b.onclick=()=>{hotspotTab=b.dataset.hotspotTab;render()});
- if($('#hotspot-day'))$('#hotspot-day').onchange=e=>{hotspotDay=Number(e.target.value);guard(()=>refreshDaily(false))};
  if($('#model-question')){
   $('#model-question').oninput=e=>modelDraft=e.target.value;
   $('#model-question').onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();guard(sendRecommendationMessage)}};
@@ -172,42 +154,6 @@ function bindDiscovery(){
  }
 }
 
-let newsSourceDraft=null, newsSourceBusy=false, newsSourceRevision=0;
-function openNewsSources(){
- newsSourceDraft=structuredClone(state.news_sources);newsSourceBusy=false;
- $('#news-source-error').hidden=true;$('#news-source-url').value='';$('#news-source-name').value='';
- renderNewsSources();$('#news-sources-dialog').showModal();
-}
-function renderNewsSources(){
- const rows=[...Object.entries(state.sources).filter(([id,s])=>s.kind==='news'&&!id.startsWith('feed-')).map(([id,s])=>({id,...s})),...newsSourceDraft.custom];
- const groups=['中文三大会','其他科技公众号','具身智能','其他来源','自定义订阅'];
- $('#news-source-list').innerHTML=groups.map(group=>{const entries=rows.filter(r=>(r.group||(r.id.startsWith('feed-')?'自定义订阅':'其他来源'))===group);return entries.length?`<div class="news-source-group">${esc(group)}</div>`+entries.map(r=>`<div class="news-source-row"><label><input type="checkbox" data-news-source="${esc(r.id)}" ${newsSourceDraft.selected.includes(r.id)?'checked':''}><span>${esc(r.name)}${r.availability?`<small>${esc(r.availability)}</small>`:''}</span></label>${r.id.startsWith('feed-')?`<button type="button" class="textbtn small danger" data-remove-news="${esc(r.id)}" aria-label="移除${esc(r.name)}">移除</button>`:''}</div>`).join(''):''}).join('');
- $('#news-source-list').querySelectorAll('[data-news-source]').forEach(el=>el.onchange=()=>{newsSourceDraft.selected=newsSourceDraft.selected.filter(id=>id!==el.dataset.newsSource);if(el.checked)newsSourceDraft.selected.push(el.dataset.newsSource)});
- $('#news-source-list').querySelectorAll('[data-remove-news]').forEach(el=>el.onclick=()=>{newsSourceDraft.custom=newsSourceDraft.custom.filter(r=>r.id!==el.dataset.removeNews);newsSourceDraft.selected=newsSourceDraft.selected.filter(id=>id!==el.dataset.removeNews);renderNewsSources()});
- $('#close-news-sources').onclick=()=>$('#news-sources-dialog').close();
- $('#add-news-source').onclick=async()=>{
-  if(newsSourceBusy)return;newsSourceBusy=true;$('#add-news-source').disabled=true;$('#save-news-sources').disabled=true;$('#news-source-error').hidden=true;
-  try{
-   const r=await request('/api/news-sources/probe',{url:$('#news-source-url').value.trim()});
-   if(newsSourceDraft.custom.some(s=>s.id===r.id))throw Error('该订阅地址已添加');
-   if(newsSourceDraft.custom.length>=20)throw Error('最多添加 20 个自定义订阅');
-   const name=$('#news-source-name').value.trim()||r.name;if(!name)throw Error('请填写来源名称');
-   newsSourceDraft.custom.push({id:r.id,name,url:r.url});newsSourceDraft.selected.push(r.id);
-   $('#news-source-url').value='';$('#news-source-name').value='';renderNewsSources();
-  }catch(e){$('#news-source-error').textContent=e.message;$('#news-source-error').hidden=false}
-  finally{newsSourceBusy=false;$('#add-news-source').disabled=false;$('#save-news-sources').disabled=false}
- };
- $('#save-news-sources').onclick=async()=>{
-  if(newsSourceBusy)return;newsSourceBusy=true;$('#save-news-sources').disabled=true;$('#news-source-error').hidden=true;
-  try{
-   const r=await request('/api/news-sources',{...newsSourceDraft,day:hotspotDay});
-   newsSourceRevision++;state.news_sources=r.config;state.sources=r.sources;state.daily=r.daily;dailyByDay={};dailyError='';
-   const position=ViewContinuity.capture($('#app'));$('#news-sources-dialog').close();if(view==='hotspots')render(position);refreshDaily(false);
-  }catch(e){$('#news-source-error').textContent=e.message;$('#news-source-error').hidden=false}
-  finally{newsSourceBusy=false;$('#save-news-sources').disabled=false}
- };
-}
-
 function hotspotBrowsingDay(moment=Date.now()){
  const value=new Date(moment).getTime();
  if(!Number.isFinite(value))return '';
@@ -216,23 +162,10 @@ function hotspotBrowsingDay(moment=Date.now()){
 function clearExpiredHotspots(){
  if(!state)return;
  const day=hotspotBrowsingDay(),entryDay=e=>e.day||hotspotBrowsingDay(e.created_at);
- state.hotspot_skips=(state.hotspot_skips||[]).filter(e=>entryDay(e)===day);
+ state.hotspot_skips=(state.hotspot_skips||[]).filter(e=>entryDay(e)===day&&e.kind!=='article');
  for(const [id,e] of hotspotRestored)if(entryDay(e)!==day)hotspotRestored.delete(id);
 }
 let hotspotCalendarDay=hotspotBrowsingDay();
 function checkHotspotDay(){const today=hotspotBrowsingDay();if(today===hotspotCalendarDay)return;hotspotCalendarDay=today;clearExpiredHotspots();if(state&&view==='hotspots')render()}
 setInterval(checkHotspotDay,30000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkHotspotDay()});
-
-async function moreDaily(){
- if(dailyLoading||!hotspotNewsEnabled())return;
- const day=hotspotDay,sourceRevision=newsSourceRevision;
- const current=dailyByDay[day]||(state.daily?.day===day?state.daily:null);
- if(!current?.has_more)return;
- dailyLoading=true;dailyError='';render();
- try{
-  const result=await request('/api/daily-more',{day,date:current.date,count:current.articles.length});
-  if(hotspotNewsEnabled()&&sourceRevision===newsSourceRevision){dailyByDay[day]=result;state.daily=result}
- }catch(e){dailyError=e.message}
- finally{dailyLoading=false;if(view==='hotspots')render()}
-}

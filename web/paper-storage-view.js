@@ -108,3 +108,20 @@ function openBatchStorage(mode='pdf'){
   }catch(e){storageDialogBusy(dialog,false);$('#preview-batch-storage').textContent=previewLabel;const error=$('#storage-operation-error');error.hidden=false;error.textContent=e.message}
  };
 }
+
+function openRemoveFigure(id,figureId){
+ const paper=state.papers.find(p=>p.id===id),figure=paper?.figures.find(f=>f.id===figureId);
+ if(!figure)return;
+ const expected=JSON.parse(JSON.stringify(figure));
+ const dialog=storageDialog('移除图表候选',`<p class="storage-paper-title">第 ${figure.page} 页 · ${esc(ReportView.caption(figure))}</p><p>此图表将从原文图表列表移除，后续生成解读时不再使用。原始 PDF、已有报告及导出文件保持不变。</p><p class="hint">误删后可通过“从原文页面添加图表”重新裁剪。</p><p id="storage-operation-error" class="error" role="alert" hidden></p><div class="row storage-actions"><button id="confirm-remove-figure" class="secondary danger">确认移除</button><button id="cancel-storage-operation" class="secondary">取消</button></div>`);
+ $('#cancel-storage-operation').onclick=()=>dialog.close();
+ $('#confirm-remove-figure').onclick=async()=>{
+  storageDialogBusy(dialog,true);
+  try{
+   const updated=await request('/api/figure-remove',{id,figure_id:figureId,expected});
+   acceptPaperUpdate(updated);const position=ViewContinuity.capture($('#app'));
+   dialog.close();render(position);toast('图表候选已移除');
+  }catch(e){const error=$('#storage-operation-error');error.hidden=false;error.textContent=e.message}
+  finally{storageDialogBusy(dialog,false)}
+ };
+}

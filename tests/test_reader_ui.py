@@ -7,6 +7,18 @@ from paperpilot import store
 
 @unittest.skipUnless(shutil.which('node'), 'Node required for shared browser rendering')
 class ReaderUi(unittest.TestCase):
+    def test_corrected_caption_number_wins_over_internal_id_and_translation(self):
+        subprocess.run(['node', '-e', r'''
+const assert=require('node:assert/strict'),r=require('./web/report-view.js');
+for(const source of ['Figure 10','figure 10 Caption','figure 10: Caption','FIGURE 10. Caption','Fig. 10: Caption']){
+ const figure={id:'fig-4',caption:source,caption_zh:'图 4：中文说明'};
+ assert.equal(r.label(figure),'Figure 10');
+ assert.equal(r.caption(figure),'Figure 10: 中文说明');
+}
+assert.equal(r.caption({id:'fig-10',kind:'figure',caption:'table 4: Results',caption_zh:'结果'}),'Table 4: 结果');
+assert.equal(r.label({id:'fig-10',caption:'User crop'}),'Figure');
+'''], cwd=store.ROOT, check=True, capture_output=True)
+
     def test_report_inline_math_and_legacy_equation_notes(self):
         subprocess.run(['node', '-e', r'''
 const assert=require('node:assert/strict'),r=require('./web/report-view.js'),katex=require('katex');
@@ -72,6 +84,33 @@ assert.ok(!html.includes('href="javascript:'));assert.match(html,/rel="noopener 
 let formulas=[];
 chat.render('内联 $x+y$ 与 \\(z\\)\n\n$$\na=b\n$$',(s,d)=>{formulas.push([s.trim(),d]);return 'MATH'});
 assert.deepEqual(formulas,[['x+y',false],['z',false],['a=b',true]]);
+'''], cwd=store.ROOT, check=True, capture_output=True)
+
+    def test_table_pipes_inside_math_code_and_escaped_text(self):
+        subprocess.run(['node', '-e', r'''
+const assert=require('node:assert/strict'),chat=require('./web/chat-view.js'),katex=require('katex');
+const formula=(s,d)=>katex.renderToString(s,{displayMode:d,throwOnError:true,trust:false});
+const source=String.raw`| 参数化 | 低噪声时的 \(|b(\sigma)|\) |
+| --- | --- |
+| 标准 LCM，蓝线 | 约为 $\sigma^2$ |
+| Flash-WAM 动作侧，橙线 | 等于 $\sigma$ |`;
+const html=chat.render(source,formula);
+assert.equal((html.match(/<th>/g)||[]).length,2);
+assert.equal((html.match(/<td>/g)||[]).length,4);
+assert.equal((html.match(/class="katex"/g)||[]).length,3);
+for(const math of [String.raw`$|x|$`,String.raw`$\|x\|$`,String.raw`\(p(y|x)\)`,String.raw`**\(|b(\sigma)|\)**`]){
+ const table=chat.render('| A | '+math+' |\n|---|---|\n| value | '+math+' |',formula);
+ assert.equal((table.match(/<th>/g)||[]).length,2);
+ assert.equal((table.match(/<td>/g)||[]).length,2);
+ assert.equal((table.match(/class="katex"/g)||[]).length,2);
+}
+const code=chat.render('| `a|b` | a\\|b |\n|---|---|\n| `<img>|x` | |');
+assert.match(code,/<th><code>a\|b<\/code><\/th><th>a\|b<\/th>/);
+assert.match(code,/<td><code>&lt;img&gt;\|x<\/code><\/td><td><\/td>/);
+assert(!code.includes('<img>'));
+const borderless=chat.render('A | $|x|$\n--- | ---\nvalue | $p(y|x)$',formula);
+assert.equal((borderless.match(/<th>/g)||[]).length,2);
+assert.equal((borderless.match(/<td>/g)||[]).length,2);
 '''], cwd=store.ROOT, check=True, capture_output=True)
 
     def test_math_inside_bold_lists_headings_and_tables(self):

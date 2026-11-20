@@ -27,7 +27,9 @@ class SourcePackage(unittest.TestCase):
             bundle = package_source.build(Path(temp) / 'source.zip')
             with zipfile.ZipFile(bundle) as archive:
                 names = {name.removeprefix('PaperPilot/') for name in archive.namelist()}
-                for required in ('AGENTS.md', 'docs/WINDOWS_HANDOFF.md',
+                for required in ('AGENTS.md', 'docs/WINDOWS_HANDOFF.md', 'docs/GETTING_STARTED.md',
+                                 'docs/assets/readme/banner.svg', 'docs/assets/readme/discovery.png',
+                                 'docs/assets/readme/reading.png', 'docs/assets/readme/knowledge.png',
                                  'paperpilot/conference_registry.json', 'web/conferences/logic.mjs',
                                  'tests/fixtures/conference-seed.json', 'tests/conference-rules.test.mjs', 'tests/reader-split.test.cjs',
                                  'web/icons/papers-cool.ico', 'paperpilot/prompts/reading.md'):

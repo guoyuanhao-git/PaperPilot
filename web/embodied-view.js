@@ -1,5 +1,5 @@
 /* Public discovery content in, personal reading choices stay in PaperPilot. */
-let hotspotSection='papers',paperFeed='embodied',embodiedResult=null,embodiedLoading=false,embodiedError='',embodiedDate='',embodiedRequest=0;
+let paperFeed='embodied',embodiedResult=null,embodiedLoading=false,embodiedError='',embodiedDate='',embodiedRequest=0;
 function embodiedToday(){return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Shanghai',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())}
 function embodiedCard(p,runId){
  const ref=cardRefs.push({paper:p,origin:'embodied-daily',runId})-1;
@@ -9,7 +9,7 @@ function embodiedCard(p,runId){
 function embodiedPanel(){
  const day=embodiedDate||embodiedToday(),result=embodiedResult?.day===day?embodiedResult:null;
  const items=(result?.items||[]).filter(p=>!hotspotIsSkipped(p));
- return `<section class="panel"><div class="section-head"><h2 class="hotspot-section-title"><a href="${esc(state.embodied_daily?.home||'http://219.223.200.145:8776/?lang=zh')}" target="_blank" rel="noopener noreferrer">具身日报 ↗</a></h2><div class="row"><input id="embodied-date" type="date" aria-label="日报日期" value="${esc(day)}" max="${embodiedToday()}"><button id="embodied-refresh" class="textbtn" ${embodiedLoading?'disabled':''}>${embodiedLoading?'读取中…':'刷新'}</button></div></div>${embodiedError||result?.error?`<p class="error" role="status">${esc(embodiedError||result.error)}</p>`:''}<div class="daily-list" data-scroll-key="embodied-${esc(day)}">${items.map(p=>embodiedCard(p,result.id)).join('')||`<p class="muted">${embodiedLoading?'正在读取…':result?'当天暂无待浏览论文。':'尚未读取日报。'}</p>`}</div></section>`;
+ return `<section class="panel"><div class="section-head"><h2 class="hotspot-section-title"><a href="${esc(state.embodied_daily?.home||'https://ipplab.github.io/embodied-ai-daily-papers/?lang=zh')}" target="_blank" rel="noopener noreferrer">具身日报 ↗</a></h2><div class="row"><input id="embodied-date" type="date" aria-label="日报日期" value="${esc(day)}" max="${embodiedToday()}"><button id="embodied-refresh" class="textbtn" ${embodiedLoading?'disabled':''}>${embodiedLoading?'读取中…':'刷新'}</button></div></div>${embodiedError||result?.error?`<p class="error" role="status">${esc(embodiedError||result.error)}</p>`:''}<div class="daily-list" data-scroll-key="embodied-${esc(day)}">${items.map(p=>embodiedCard(p,result.id)).join('')||`<p class="muted">${embodiedLoading?'正在读取…':result?'当天暂无待浏览论文。':'尚未读取日报。'}</p>`}</div></section>`;
 }
 async function refreshEmbodied(){
  const seq=++embodiedRequest,day=embodiedDate||embodiedToday();embodiedLoading=true;embodiedError='';
@@ -19,11 +19,9 @@ async function refreshEmbodied(){
  finally{if(seq===embodiedRequest){embodiedLoading=false;if(view==='hotspots')render()}}
 }
 function enterHotspots(){
- if(hotspotSection==='news'&&hotspotNewsEnabled())void refreshDaily(false);
- else if(hotspotSection==='papers'&&paperFeed==='embodied')void refreshEmbodied();
+ if(paperFeed==='embodied')void refreshEmbodied();
 }
 function bindEmbodied(){
- document.querySelectorAll('[data-hotspot-section]').forEach(b=>b.onclick=()=>{hotspotSection=b.dataset.hotspotSection;render();enterHotspots()});
  if($('#paper-feed'))$('#paper-feed').onchange=e=>{paperFeed=e.target.value;render();enterHotspots()};
  if($('#embodied-date'))$('#embodied-date').onchange=e=>{embodiedDate=e.target.value||embodiedToday();void refreshEmbodied()};
  if($('#embodied-refresh'))$('#embodied-refresh').onclick=()=>void refreshEmbodied();
