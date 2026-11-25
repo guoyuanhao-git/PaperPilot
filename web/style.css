@@ -305,3 +305,12 @@ input[type=radio]{width:18px;height:18px;flex:0 0 18px;margin:0;padding:0;accent
 
 .figure-actions{display:flex;align-items:center;justify-content:space-between;gap:10px}.figure-actions [data-remove-figure]{color:var(--muted)}
 @media(max-width:700px){.floating-paper-figures{bottom:max(78px,calc(env(safe-area-inset-bottom) + 62px))}.figure-picker-item img{width:72px;height:60px}}
+
+/* Original crop proportions, with a readable floor and no narrow-pane overflow. */
+.reportfigure{width:min(100%,max(var(--figure-width,100%),520px));margin:20px auto}
+
+.reader-content-tabs{display:flex;gap:24px;border-bottom:1px solid var(--border,#dfe4dc);margin:24px 0}
+.reader-content-tabs button{background:none;border:0;border-radius:0;padding:12px 2px;color:var(--muted,#74827c);font-weight:600;border-bottom:3px solid transparent}
+.reader-content-tabs button[aria-selected="true"]{color:var(--accent,#31594d);border-bottom-color:currentColor}
+.reading [role="tabpanel"][hidden]{display:none}
+.body-translation .translation-fragment:first-of-type{margin-top:22px}

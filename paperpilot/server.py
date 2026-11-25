@@ -143,11 +143,12 @@ class Handler(BaseHTTPRequestHandler):
                 elif name.startswith('fig-'):
                     p = store.get('paper', ident)
                     report_image = urllib.parse.parse_qs(parsed.query).get('report') == ['1']
-                    figure_list = (p.get('report') or {}).get('figures', []) if report_image else p['figures']
+                    translation_image = urllib.parse.parse_qs(parsed.query).get('translation') == ['1']
+                    figure_list = (p.get('translation') or {}).get('figures', []) if translation_image else (p.get('report') or {}).get('figures', []) if report_image else p['figures']
                     f = next((f for f in figure_list if f['id'] + '.png' == name), None)
                     if not f:
                         raise ValueError('找不到图表')
-                    return self.response(documents.figure_bytes(ident, f, quality='reading' if report_image else 'model'), mime='image/png')
+                    return self.response(documents.figure_bytes(ident, f, quality='reading' if report_image or translation_image else 'model'), mime='image/png')
                 else:
                     file = (folder / 'exports' / name) if name.startswith('report-') else (folder / name)
                 return self.response(file.read_bytes(), mime=mimetypes.guess_type(name)[0] or 'application/octet-stream',
@@ -404,8 +405,9 @@ class Handler(BaseHTTPRequestHandler):
                             documents.crop_figure(p['id'], f)
                         p['last_figure_number'] = next_id - 1
                         p['figures'] = figures
-                        if p.get('report'):
-                            p['report']['figures'] = [next((dict(f) for f in figures if f['id'] == old['id']), old) for old in p['report'].get('figures', [])]
+                        for kind in ('report', 'translation'):
+                            if p.get(kind):
+                                p[kind]['figures'] = [next((dict(f) for f in figures if f['id'] == old['id']), old) for old in p[kind].get('figures', [])]
                     store.save('paper', p)
                     for field, kind in [('notes', '个人思考'), ('feedback', '论文反馈')]:
                         if field in body:

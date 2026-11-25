@@ -1,6 +1,24 @@
 /* Shared, escaped rendering for the reader and PDF exporter. No model HTML. */
 (function(root){
  const escape=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ // A crop's normalized page width is a hint, not a claim about column layout.
+ // Legacy translations may include an author's visiting-affiliation footnote.
+ // Only omit a complete, explicitly marked administrative note, never technical notes.
+ function translationText(value){
+  return String(value||'').split(/\n\s*\n/).filter(paragraph=>{
+   const text=paragraph.trim();
+   if(!/^(?:\\?\*|[†‡])\s*/.test(text))return true;
+   const body=text.replace(/^(?:\\?\*|[†‡])\s*/,'');
+   return !/^(?:(?:本|部分|这项|此项)(?:工作|研究)|(?:工作|研究)的一部分)在[^。！？\n]{1,120}(?:访问|访学)[^。！？\n]{0,120}期间完成[。.]?$/.test(body)
+       && !/^(?:(?:本|部分|这项|此项)(?:工作|研究)|(?:工作|研究)的一部分)在(?:访问|访学)[^。！？\n]{1,120}期间完成[。.]?$/.test(body);
+  }).join('\n\n');
+ }
+ function figureWidth(figure){
+  const box=figure?.bbox;
+  if(!Array.isArray(box)||box.length!==4||box.some(v=>!Number.isFinite(v)||v<0||v>1)||box[2]<=box[0]||box[3]<=box[1])return 100;
+  const table=/^(?:Table|表)\s*/i.test(figure.caption||figure.caption_zh||'')||figure.kind==='table';
+  return Math.round(Math.min(100,Math.max(table?80:64,(box[2]-box[0])/0.84*100)));
+ }
  const themes={motivation:['研究动机','#925313','#fff2df'],method:['核心方法','#225f8b','#eaf3fb'],experiments:['实验证据','#28715b','#e9f4ed'],conclusion:['研究结论','#71508e','#f3ecf8'],relevance:['研究联系','#71508e','#f3ecf8']};
  function theme(section){return section.key==='conclusion'?themes.conclusion:section.textbook?['教材式精读','#225f8b','#eaf3fb']:themes[section.focus||section.key]||['阅读重点','#225f8b','#eaf3fb']}
  function chunks(text,max=180){
@@ -102,6 +120,6 @@
   const blocks=s.blocks||[s];
   return blocks.map(b=>(b.figure_first||s.blocks?(b.figures||[]).map(figure).join(''):'')+sectionBody(b,false,formula)+(b.equations||[]).map(equation).join('')+(!b.figure_first&&!s.blocks?(b.figures||[]).map(figure).join(''):'')).join('');
  }
- const api={inline,equationSymbols,equationNoteHTML,equationNotes,sections,paperSection,references,label,sectionContent,escape,theme,chunks,highlights,marked,sectionBody,caption};
+ const api={translationText,figureWidth,inline,equationSymbols,equationNoteHTML,equationNotes,sections,paperSection,references,label,sectionContent,escape,theme,chunks,highlights,marked,sectionBody,caption};
  if(typeof module!=='undefined')module.exports=api;else root.ReportView=api;
 })(globalThis);

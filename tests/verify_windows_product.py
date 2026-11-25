@@ -85,6 +85,14 @@ const {chromium}=require('playwright');
  try{
   await page.goto(process.env.TEST_URL,{waitUntil:'networkidle'});
   await page.locator('[data-paper]').first().click();
+  if(await page.locator('[data-reader-tab]').count()!==2)throw Error('Missing peer reading tabs');
+  if(await page.locator('.shared-paper-header .source-caption').count()!==1)throw Error('Original abstract outside shared header');
+  await page.locator('[data-reader-tab="translation"]').click();
+  if(!await page.locator('#reader-content-translation').isVisible()||await page.locator('#reader-content-report').isVisible())throw Error('Reading contents stacked');
+  if(await page.locator('.body-translation.panel, details.body-translation').count())throw Error('Translation still nested in a card');
+  await page.locator('[data-reader-tab="translation"]').press('ArrowLeft');
+  if(!await page.locator('#reader-content-report').isVisible())throw Error('Keyboard tab switch failed');
+  console.log('PEER_READING_TABS_AND_SHARED_ABSTRACT_OK');
   await page.evaluate(()=>window.scrollTo(0,document.body.scrollHeight));
   await page.locator('#floating-paper-figures').waitFor({state:'visible'});
   const readingY=await page.evaluate(()=>window.scrollY);
@@ -92,6 +100,20 @@ const {chromium}=require('playwright');
   await page.locator('[data-picker-crop]').first().click();
   await page.locator('#crop-dialog').waitFor();
   await page.locator('#cancel-crop').click();
+  await page.locator('#paper-figures-dialog').waitFor({state:'visible'});
+  const pickerId=await page.locator('[data-picker-crop]').first().getAttribute('data-picker-crop');
+  await page.locator('[data-picker-crop]').first().click();
+  await page.locator('#crop-caption').fill('列表连续编辑测试');
+  await page.locator('#save-crop').click();
+  await page.locator('#crop-dialog').waitFor({state:'hidden'});
+  await page.locator('#paper-figures-dialog').waitFor({state:'visible'});
+  if(!(await page.locator(`[data-picker-crop="${pickerId}"]`).innerText()).includes('列表连续编辑测试'))throw Error('Returned picker has stale caption');
+  const pickerItems=page.locator('[data-picker-crop]');
+  await pickerItems.nth(Math.min(1,await pickerItems.count()-1)).click();
+  await page.locator('#crop-dialog').waitFor({state:'visible'});
+  await page.locator('#cancel-crop').click();
+  await page.locator('#close-paper-figures').click();
+  console.log('SAVE_RETURNS_TO_UPDATED_FIGURE_PICKER_OK');
   if(Math.abs(await page.evaluate(()=>window.scrollY)-readingY)>3)throw Error('Figure picker moved reading position');
   await page.locator('.report-crop').first().click();
   await page.locator('#crop-dialog').waitFor();
@@ -115,12 +137,24 @@ const {chromium}=require('playwright');
    await page.locator('#save-crop').click();
    const saved=await (await response).json();
    const figure=saved.figures.find(f=>f.id===figureId),reported=saved.report.figures.find(f=>f.id===figureId);
-   if(!figure||figure.caption!==expected||figure.kind!==kind||reported?.caption!==expected)throw Error('Caption identity not synchronized');
+   if(!figure||figure.caption!==expected||figure.kind!==kind||reported?.caption!==expected||saved.translation.figures.find(f=>f.id===figureId)?.caption!==expected||saved.translation.figures.find(f=>f.id===figureId)?.caption_zh!==figure.caption_zh)throw Error('Caption identity not synchronized');
    if(saved.figures.length!==initialFigures)throw Error('Caption correction created another figure');
+   await page.waitForFunction(()=>!document.querySelector('#save-crop').disabled);
    await page.locator('#crop-dialog').waitFor({state:'hidden'});
    return figure;
   }
   await cropButton.click();await page.locator('#crop-mode-text').click();
+  if(!(await page.locator('#crop-source-caption').inputValue()))throw Error('Existing source caption not prefilled');
+  await page.route('**/api/crop-caption-translate',async route=>{
+   const body=route.request().postDataJSON();
+   if(body.text!=='Figure 2: Manually corrected caption')throw Error('Manual caption not sent');
+   await route.fulfill({json:{original:body.text,translation:'Figure 2: 手动原文的模拟译文'}});
+  });
+  await page.locator('#crop-source-caption').fill('Figure 2: Manually corrected caption');
+  await page.locator('#translate-crop-caption').click();
+  await page.waitForFunction(()=>document.querySelector('#crop-caption').value==='Figure 2: 手动原文的模拟译文');
+  await page.unroute('**/api/crop-caption-translate');
+  console.log('MANUAL_CAPTION_TRANSLATION_UI_MOCK_OK');
   await page.locator('#crop-source-caption').fill('figure 10: Corrected caption.');
   await page.locator('#crop-caption').fill('手动填写的中文图注');
   let corrected=await saveCaption('figure 10: Corrected caption.','figure');
@@ -178,6 +212,16 @@ const {chromium}=require('playwright');
   await page.locator('#done-batch-storage').click();
   await page.locator('[data-paper]').first().click();
   if(await page.locator('[data-export="pdf"]').count())throw Error('Report not removed');
+  if(await page.getByText('用于验证共享摘要仅显示一次。',{exact:true}).count()!==1)throw Error('Shared abstract duplicated or missing');
+  if(await page.getByText('先看懂这篇论文在解决什么',{exact:true}).count())throw Error('Empty report prompt shown over translation');
+  if(await page.locator('[data-reader-tab]').count()!==1||!await page.locator('#reader-content-translation').isVisible())throw Error('Single translation tab not selected');
+  const translatedImage=page.locator('.body-translation img').first();
+  await translatedImage.waitFor();
+  await translatedImage.evaluate(img=>img.decode());
+  if(!(await page.locator('.body-translation figcaption').first().innerText()).includes('用户新输入的表注'))throw Error('Updated caption not retained');
+  if(await page.locator('.body-translation .source-caption, .body-translation .error, .body-translation .hint').count())throw Error('Redundant translation hints visible');
+  console.log('TRANSLATION_IMAGES_AND_CAPTIONS_AFTER_REPORT_DELETE_OK');
+
   await page.locator('#analyze').waitFor();
   await page.locator('#back').click();
   await page.locator('#batch-storage').click();
@@ -226,6 +270,11 @@ def main():
                     paper = papers[0]
                     assert paper['page_count'] == 2
                     paper.update(paper_type='research', report={**report(paper), 'mode':'detailed', 'figures':paper['figures']})
+                    paper['abstract_record']={'original':'Synthetic abstract.', 'translation':'用于验证共享摘要仅显示一次。'}
+                    paper['translation']={'generated_at':'2026-11-21T00:00:00+00:00',
+                        'extraction_note':'合成译文，仅用于验证界面。',
+                        'sections':[{'page':1,'translation':'测试正文 $x_i$。','figures':[f['id'] for f in paper['figures']]}],
+                        'figures':[{**f,'caption_zh':'Figure 1. 合成测试图注'} for f in paper['figures']]}
                     store.save('paper', paper)
                     info=exports.export(paper['id'],'pdf',print)
                     from pypdf import PdfReader

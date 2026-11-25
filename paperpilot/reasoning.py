@@ -2,9 +2,9 @@
 import copy
 
 LEVELS = {'low': ('low', 'disabled'), 'medium': ('medium', 'low'), 'high': ('high', 'high')}
-GROUPS = {'overview': 'medium', 'study': 'high', 'knowledge': 'medium'}
+GROUPS = {'overview': 'medium', 'study': 'high', 'knowledge': 'medium', 'translation': 'medium'}
 TASK_GROUPS = {'overview': 'overview', 'detailed': 'study', 'deep': 'study',
-               'knowledge': 'knowledge'}
+               'knowledge': 'knowledge', 'translation': 'translation'}
 FIXED = {'lookup': 'low', 'hotspots': 'low', 'metadata': 'low', 'memory': 'medium',
          'chat': 'medium', 'recommendation': 'medium', 'research': 'medium'}
 DEFAULTS = {**{task: GROUPS[group] for task, group in TASK_GROUPS.items()}, **FIXED}

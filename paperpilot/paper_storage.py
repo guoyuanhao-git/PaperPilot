@@ -86,7 +86,7 @@ def prepare(paper):
     # Every report image must remain viewable/exportable, including manually cropped versions.
     before = {p.name for p in folder.iterdir()}
     try:
-        keep = {documents.crop_figure(paper['id'], f).name for f in (paper.get('report') or {}).get('figures', [])}
+        keep = {documents.crop_figure(paper['id'], f).name for f in documents.saved_figures(paper)}
     except Exception:
         for path in [*folder.glob('page-*.png'), *folder.glob('crop-*.png')]:
             if path.name not in before:
@@ -205,7 +205,7 @@ def manual_restore(ident, data, filename='paper.pdf'):
         pages, figures, _, _ = documents.extract_pdf(data)
         folder = documents.directory(ident)
         # Pin the old report's images before switching its underlying PDF version.
-        for figure in (paper.get('report') or {}).get('figures', []):
+        for figure in documents.saved_figures(paper):
             figure['image_file'] = documents.crop_figure(ident, figure).name
         staging = folder / '.restore-staging'
         token = uuid.uuid4().hex
@@ -260,7 +260,7 @@ def cleanup_report_images(paper, previous_report):
     with documents.PDF_LOCK:
         try:
             keep = {f.get('image_file') or documents.crop_path(paper['id'], f, paper).name
-                    for f in (paper.get('report') or {}).get('figures', [])}
+                    for f in documents.saved_figures(paper)}
         except (OSError, ValueError):
             return  # The saved report wins over optional cache cleanup.
         old = set(paper.get('source_storage', {}).get('retained_images', []))
@@ -320,7 +320,7 @@ def delete_report(ident, revision):
                    for f in report.get('figures', []))
         # A manual crop may still be in the original-figure editor.
         keep = {f.get('image_file') or documents.crop_path(ident, f, paper).name
-                for f in paper.get('figures', [])}
+                for f in paper.get('figures', []) + (paper.get('translation') or {}).get('figures', [])}
         paper['report'] = None
         if paper.get('source_storage'):
             paper['source_storage']['retained_images'] = sorted(old & keep)

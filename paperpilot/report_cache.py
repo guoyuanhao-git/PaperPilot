@@ -10,6 +10,8 @@ def now():
 def recent(paper, key, at=None):
     report = paper.get('report') or {}
     value = report.get(key)
+    if key == 'paper_info' and paper.get('paper_info_revision') and paper.get('paper_info_revision') == (paper.get('pdf_sha256') or paper.get('id')):
+        value = paper.get('paper_info') or value
     if not isinstance(value, dict):
         return None
     if key == 'abstract' and not (value.get('original') and value.get('translation') and isinstance(value.get('pages'), list)):

@@ -27,7 +27,7 @@ def validate(paper, required=False):
     if month and paper['short_title']:
         for other in store.all_objects('paper'):
             if other['id'] != paper['id'] and other.get('publication_month') and other.get('short_title') and key(other) == key(paper):
-                raise ValueError('年月＋短标题已存在，请修改短标题以区分论文，例如 FastWAM-A')
+                raise ValueError('年月＋短标题已存在，请添加能区分论文的关键词或后缀')
     return paper
 
 

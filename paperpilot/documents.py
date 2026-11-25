@@ -69,6 +69,21 @@ def next_figure_number(paper):
     return max([paper.get('last_figure_number', 0), *numbers]) + 1
 
 
+def saved_figures(paper):
+    """Images referenced by independently saved reading artifacts."""
+    return [f for kind in ('report', 'translation')
+            for f in (paper.get(kind) or {}).get('figures', [])]
+
+
+def sync_captions(paper):
+    """Original figures own captions; saved artifacts keep their crop snapshots."""
+    originals = {f['id']: f for f in paper.get('figures', [])}
+    for saved in saved_figures(paper):
+        current = originals.get(saved['id'])
+        if current and current.get('caption') == saved.get('caption'):
+            saved['caption_zh'] = current.get('caption_zh', '')
+
+
 def remove_figure(ident, figure_id, expected):
     from .service import SAVE_LOCK
     with SAVE_LOCK:

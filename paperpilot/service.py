@@ -267,6 +267,9 @@ def report_schema(figures):
 
 
 def analyze(ident, mode, figure_scope='all', outline=None):
+    if mode == 'translation':
+        from . import translation
+        return translation.start(ident)
     if mode not in ('overview', 'detailed', 'deep'):
         raise ValueError('未知阅读模式')
     if figure_scope not in ('all', 'selected'):
@@ -304,10 +307,11 @@ def analyze(ident, mode, figure_scope='all', outline=None):
             report['figures'] = figs
             for f in figs:
                 previous_caption_zh = f.get('caption_zh', '')
-                f['caption_zh'] = next((c['caption'] for c in report['figure_captions'] if c['id'] == f['id']), f.get('caption_zh', ''))
+                f['caption_zh'] = previous_caption_zh or next((c['caption'] for c in report['figure_captions'] if c['id'] == f['id']), '')
                 for current_figure in current['figures']:
                     if current_figure['id'] == f['id'] and current_figure['caption'] == f['caption'] and current_figure.get('caption_zh', '') == previous_caption_zh:
                         current_figure['caption_zh'] = f['caption_zh']
+            documents.sync_captions(current)
             store.save('paper', current)
             control = cancellation.CURRENT.get()
             if control:
@@ -383,11 +387,12 @@ def translate_captions(ident):
             raise ValueError('模型未返回全部图注，原有内容保留')
         with SAVE_LOCK:
             current = store.get('paper', ident)
-            for target in (current['figures'], (current.get('report') or {}).get('figures', [])):
+            for target in (current['figures'],):
                 for f in target:
                     original = next((old for old in figures if old['id'] == f['id'] and old['caption'] == f['caption']), None)
                     if original and f.get('caption_zh', '') == original.get('caption_zh', ''):
                         f['caption_zh'] = next(c['caption'] for c in captions if c['id'] == f['id'])
+            documents.sync_captions(current)
             store.save('paper', current)
         return {'paper_id': ident, 'usage': result['usage']}
     return paper_job('captions', ident, work)

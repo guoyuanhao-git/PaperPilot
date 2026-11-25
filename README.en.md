@@ -5,7 +5,7 @@
 <p align="center"><a href="README.md">简体中文</a> · <strong>English</strong></p>
 
 <p align="center">
-  <strong>Discover papers, read deeply, and connect ideas around your research.</strong><br>
+  <strong>Read papers in Chinese and build a knowledge graph around your research.</strong><br>
   A local-first research workspace powered by Codex or DeepSeek.
 </p>
 
@@ -20,9 +20,18 @@
 
 <p align="center">Local storage &nbsp; / &nbsp; Codex · DeepSeek &nbsp; / &nbsp; macOS · Windows</p>
 
-**Read plenty of papers, but struggle to connect them when it matters?** PaperPilot helps you move from understanding individual papers to organizing a body of research. Save reading reports and your own reflections, then use AI to explore connections around your long-term interests and current projects.
+PaperPilot is a local research workspace for Chinese-speaking readers. Open an English paper and read the body in Chinese alongside the original figures, or switch to a reading report for an explanation of the method. Both views share the abstract and paper details.
 
-Reading and knowledge management support different research fields; discovery and conference tracking focus on embodied intelligence and related AI research. Your personal workspace stays on your machine, using your own model access. The application interface is in Chinese. This English README helps developers understand the project and contribute, including adapting it to other languages.
+For embodied AI researchers, reading can start before downloading the paper. Browse the daily slide decks to follow the field, then decide which papers belong in your personal knowledge graph.
+
+| How you engage with a paper | Where it appears |
+| --- | --- |
+| **Browse the daily slides** to understand an idea or save it for later | Opening the deck or adding a paper to the reading queue leaves it outside the graph. |
+| **Mark a paper as read** after working through it | It becomes a candidate for research threads where its content is relevant. |
+| **♥ Like** a paper for a method, experiment, or perspective you want to revisit | It joins the long-term field graph. The expanded view includes Liked papers. |
+| **★ Favorite** a paper you use as a lasting reference | It joins the same field graph and appears in the overview with the selected core connections. |
+
+Liked and Favorite are alternative choices. Either can be set while reading. The reader and graphs work across research fields, while the daily feed and conference schedule focus on embodied AI.
 
 <a id="highlights"></a>
 ## Why PaperPilot?
@@ -51,7 +60,7 @@ These screenshots show the **actual interface with synthetic demo data**. Papers
 
 1. **Browse first.** Explore papers by date and expand summaries to judge their relevance.
 2. **Read the explanation.** Click a paper title to open its prepared slide deck in PDF form. No additional slide-generation call is needed in PaperPilot.
-3. **Make it part of your research.** Add interesting papers to your reading queue or import the originals, then read deeply, ask questions, record reflections, and connect them to your knowledge graph.
+3. **Make it part of your research.** Add interesting papers to your reading queue or import the originals, then read a Chinese translation or report, ask questions, and record your reflections.
 
 For broader coverage, switch to the **full HF list** and use AI filtering based on your research interests and threads. The daily site provides shared explanations; PaperPilot supports your personal research work.
 
@@ -63,9 +72,10 @@ For broader coverage, switch to the **full HF list** and use AI filtering based 
 
 <img src="docs/assets/readme/reading.png" alt="Reading report on the left and contextual paper discussion on the right" width="100%">
 
+- **Read the paper in Chinese.** Full-text translation starts with a whole-paper pass to align terminology, then translates the main text in order. Formulas and original figure and table images accompany Chinese captions. Switch between the translation and a separately saved reading report.
 - **Choose the right reading structure.** Research papers follow motivation, method, experiments, and conclusions; surveys have a separate structure. Add, remove, or edit steps and save your preferred narrative.
 - **Personalize mathematical explanations.** Upload a reference text and choose between reading it with each request or reusing an extracted style specification to reduce repeated input.
-- **Check and correct figures.** Add, remove, crop, and select captions from the original PDF. High-resolution crops load on demand and can be adjusted directly from the report.
+- **Check and correct figures.** Add, remove, or crop figures. Select caption text in the PDF or edit it by hand before translating it. High-resolution crops load on demand and can be adjusted directly from the report.
 - **Keep working.** Open papers in separate tabs. Up to three report-generation tasks run concurrently; additional tasks queue. Stop generation, or stop and edit a mistakenly sent chat question.
 - **Take your report with you.** Export existing reports as PDFs with Chinese text, formulas, and figures, without another model call.
 
@@ -215,7 +225,7 @@ Use a temporary data directory to keep tests separate from personal material:
 ```sh
 export PAPERPILOT_DATA="$(mktemp -d)"
 .venv/bin/python -m unittest discover -s tests
-node --test tests/reader-split.test.cjs tests/conference-rules.test.mjs
+node --test tests/reader-split.test.cjs tests/conference-rules.test.mjs tests/translation-view.test.cjs
 npm run build:graph
 .venv/bin/python tests/verify_exports.py
 .venv/bin/python tools/package_source.py

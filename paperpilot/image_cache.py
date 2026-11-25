@@ -19,15 +19,15 @@ def trim():
         # Fetch only storage metadata, not thousands of full reading reports.
         with store.connect() as db:
             rows = db.execute("""SELECT id, json_extract(body, '$.pdf_released'),
-                json_extract(body, '$.report.figures') FROM objects WHERE kind='paper'""").fetchall()
+                json_extract(body, '$.report.figures'), json_extract(body, '$.translation.figures') FROM objects WHERE kind='paper'""").fetchall()
         entries = []
-        for ident, released, figures in rows:
+        for ident, released, figures, translated_figures in rows:
             folder = directory(ident)
             if (released or not (folder / 'source.pdf').is_file()
                     or (folder / '.release-staging').exists()
                     or (folder / '.restore-staging').exists()):
                 continue
-            pinned = {f.get('image_file') for f in json.loads(figures or '[]')}
+            pinned = {f.get('image_file') for f in json.loads(figures or '[]') + json.loads(translated_figures or '[]')}
             for path in folder.iterdir():
                 if not IMAGE_NAME.fullmatch(path.name) or path.name in pinned or path.is_symlink():
                     continue
