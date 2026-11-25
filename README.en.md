@@ -70,9 +70,14 @@ For broader coverage, switch to the **full HF list** and use AI filtering based 
 
 ### 02 · Understand a paper and keep asking questions
 
+Read the main text in Chinese with the original figures, translated captions, and inline formulas. Switch to the reading report when you want to explore how the method works.
+
+<img src="docs/assets/readme/translation.png" alt="Chinese translation with inline notation and the original open-loop and closed-loop trajectory diagram" width="100%">
+
+In the report, open the conversation panel to ask about a formula or compare results while keeping the explanation in view.
+
 <img src="docs/assets/readme/reading.png" alt="Reading report on the left and contextual paper discussion on the right" width="100%">
 
-- **Read the paper in Chinese.** Full-text translation starts with a whole-paper pass to align terminology, then translates the main text in order. Formulas and original figure and table images accompany Chinese captions. Switch between the translation and a separately saved reading report.
 - **Choose the right reading structure.** Research papers follow motivation, method, experiments, and conclusions; surveys have a separate structure. Add, remove, or edit steps and save your preferred narrative.
 - **Personalize mathematical explanations.** Upload a reference text and choose between reading it with each request or reusing an extracted style specification to reduce repeated input.
 - **Check and correct figures.** Add, remove, or crop figures. Select caption text in the PDF or edit it by hand before translating it. High-resolution crops load on demand and can be adjusted directly from the report.
@@ -95,14 +100,17 @@ Relationship analysis uses titles, abstracts, personal reflections, and saved re
 
 Explore in 2D or 3D, update incrementally, or rebuild. Optional weekly updates check for missed work when the app reopens; nothing runs while the app is closed, and unchanged material does not trigger a model call. Failed generation preserves the previous graph; a successfully generated field backbone is saved independently.
 
-### 04 · Find your next paper and plan ahead
+### 04 · Which submission deadline comes next?
 
-- **Discovery:** switch between Embodied AI Daily Papers and the full HF list. The daily feed provides summaries and external explanations; the full list supports personalized AI filtering.
-- **Paper search:** search by title, or discuss your research question with the assistant to develop recommendations. Save candidates to the reading queue before importing them.
-- **Conference schedule:** track relevant conferences, abstract registration and full-paper deadlines, countdowns, official sources, and separate CCF / TH-CPL ratings. Follow one conference series, change time zones, and inspect past editions.
-- **A simpler workspace:** hide navigation modules you do not use.
+The conference schedule highlights the nearest deadline still open to first-time submissions. Follow a series to keep it at the top. Each card distinguishes registration from the full-paper deadline and links to the official source.
+
+<img src="docs/assets/readme/conferences.png" alt="Conference schedule with a featured countdown, time zone selector, and separate registration and full-paper dates for CVPR, RSS, and IJCAI" width="100%">
+
+*Historical demo view. Check the official conference page for current deadlines.*
 
 ## Built for a Growing Library
+
+**Paper search:** search by title, or discuss your research question with the assistant to develop recommendations. Save candidates to the reading queue before importing them.
 
 **Organize reading and preference separately.** The reading queue holds candidates; Reading and Read track progress. ♥ Liked and ★ Favorites are mutually exclusive personal preferences. Previously read papers can be added with metadata and abstracts first, downloading PDFs when needed.
 

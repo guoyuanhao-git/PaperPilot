@@ -29,6 +29,7 @@ class SourcePackage(unittest.TestCase):
                 names = {name.removeprefix('PaperPilot/') for name in archive.namelist()}
                 for required in ('README.md', 'README.en.md', 'docs/assets/readme/banner.en.svg', 'AGENTS.md', 'docs/WINDOWS_HANDOFF.md', 'docs/GETTING_STARTED.md',
                                  'docs/assets/readme/banner.svg', 'docs/assets/readme/discovery.png',
+                                 'docs/assets/readme/translation.png', 'docs/assets/readme/conferences.png',
                                  'docs/assets/readme/reading.png', 'docs/assets/readme/knowledge.png',
                                  'paperpilot/conference_registry.json', 'web/conferences/logic.mjs',
                                  'tests/fixtures/conference-seed.json', 'tests/conference-rules.test.mjs', 'tests/reader-split.test.cjs',

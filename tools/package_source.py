@@ -12,6 +12,7 @@ SINGLE = ['README.md', 'README.en.md', 'AGENTS.md', 'requirements.txt', 'run.sh'
           'tools/export.mjs', 'tools/package_source.py', 'tools/build-graph.mjs',
           'tools/graph3d-entry.js', 'web/graph3d-licenses.txt',
           'docs/assets/readme/banner.svg', 'docs/assets/readme/banner.en.svg', 'docs/assets/readme/discovery.png',
+          'docs/assets/readme/translation.png', 'docs/assets/readme/conferences.png',
           'docs/assets/readme/reading.png', 'docs/assets/readme/knowledge.png']
 TREES = {'paperpilot': {'.py', '.md'},
          'web': {'.html', '.css', '.js', '.mjs', '.svg', '.png', '.ico', '.icns', '.md'},
